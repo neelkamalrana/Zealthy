@@ -451,12 +451,12 @@ const AdminEMR: React.FC = () => {
     return (
       <div className="container">
         <div className="nav">
-          <h1>Zealthy EMR - Admin Panel</h1>
+          <h1>Zealthy Mini EMR</h1>
           <div>
-            <button className="btn" onClick={() => openModal('patient')} style={{ marginRight: '10px' }}>
+            <button className="btn btn-patient" onClick={() => openModal('patient')} style={{ marginRight: '10px' }}>
               Add New Patient
             </button>
-            <button className="btn" onClick={() => openModal('provider')}>
+            <button className="btn btn-provider" onClick={() => openModal('provider')}>
               Add New Provider
             </button>
           </div>
@@ -524,7 +524,7 @@ const AdminEMR: React.FC = () => {
     return (
       <div className="container">
         <div className="nav">
-          <h1>Patient Details - {selectedPatient.name}</h1>
+          <h1>Zealthy Mini EMR - Patient Details - {selectedPatient.name}</h1>
           <button className="btn btn-secondary" onClick={() => setCurrentView('patients')}>
             Back to Patients
           </button>

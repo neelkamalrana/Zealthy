@@ -102,6 +102,9 @@ const PatientPortal: React.FC = () => {
   if (!isLoggedIn) {
     return (
       <div className="container">
+        <div className="nav">
+          <h1>Zealthy Patient Portal</h1>
+        </div>
         <div className="login-form">
           <h2>Patient Portal Login</h2>
           <form onSubmit={handleLogin}>
