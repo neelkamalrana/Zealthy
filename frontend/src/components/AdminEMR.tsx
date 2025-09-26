@@ -24,6 +24,7 @@ const AdminEMR: React.FC = () => {
 
   const medications = ['Diovan', 'Lexapro', 'Metformin', 'Ozempic', 'Prozac', 'Seroquel', 'Tegretol'];
   const dosages = ['1mg', '2mg', '3mg', '5mg', '10mg', '25mg', '50mg', '100mg', '250mg', '500mg', '1000mg'];
+  const providers = ['Dr Kim West', 'Dr Lin James', 'Dr Sally Field'];
 
   useEffect(() => {
     loadPatients();
@@ -281,12 +282,16 @@ const AdminEMR: React.FC = () => {
               <>
                 <div className="form-group">
                   <label>Provider:</label>
-                  <input
-                    type="text"
+                  <select
                     value={appointmentForm.provider}
                     onChange={(e) => setAppointmentForm({ ...appointmentForm, provider: e.target.value })}
                     required
-                  />
+                  >
+                    <option value="">Select provider</option>
+                    {providers.map(provider => (
+                      <option key={provider} value={provider}>{provider}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="form-group">
                   <label>Date & Time:</label>
