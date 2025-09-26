@@ -525,9 +525,11 @@ const AdminEMR: React.FC = () => {
       <div className="container">
         <div className="nav">
           <h1>Zealthy Mini EMR - Patient Details - {selectedPatient.name}</h1>
-          <button className="btn btn-secondary" onClick={() => setCurrentView('patients')}>
-            Back to Patients
-          </button>
+          <div>
+            <button className="btn btn-secondary" onClick={() => setCurrentView('patients')}>
+              Back to Patients
+            </button>
+          </div>
         </div>
 
         {error && <div className="alert alert-error">{error}</div>}
