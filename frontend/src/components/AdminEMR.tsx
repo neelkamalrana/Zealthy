@@ -6,7 +6,7 @@ const AdminEMR: React.FC = () => {
   const [selectedPatient, setSelectedPatient] = useState<User | null>(null);
   const [currentView, setCurrentView] = useState<'patients' | 'patient-details'>('patients');
   const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState<'patient' | 'appointment' | 'prescription'>('patient');
+  const [modalType, setModalType] = useState<'patient' | 'appointment' | 'prescription' | 'provider'>('patient');
   const [editingItem, setEditingItem] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -21,10 +21,23 @@ const AdminEMR: React.FC = () => {
     refill_on: '', 
     refill_schedule: 'monthly' as 'weekly' | 'monthly' 
   });
+  const [providerForm, setProviderForm] = useState({ name: '', specialty: '' });
 
   const medications = ['Diovan', 'Lexapro', 'Metformin', 'Ozempic', 'Prozac', 'Seroquel', 'Tegretol'];
   const dosages = ['1mg', '2mg', '3mg', '5mg', '10mg', '25mg', '50mg', '100mg', '250mg', '500mg', '1000mg'];
-  const providers = ['Dr Kim West', 'Dr Lin James', 'Dr Sally Field'];
+  const specialties = [
+    'Cardiology',
+    'Dermatology', 
+    'Endocrinology',
+    'Gastroenterology',
+    'General Practice',
+    'Neurology',
+    'Oncology',
+    'Orthopedics',
+    'Pediatrics',
+    'Psychiatry'
+  ];
+  const [providers, setProviders] = useState(['Dr Kim West', 'Dr Lin James', 'Dr Sally Field']);
 
   useEffect(() => {
     loadPatients();
@@ -175,7 +188,19 @@ const AdminEMR: React.FC = () => {
     }
   };
 
-  const openModal = (type: 'patient' | 'appointment' | 'prescription', item?: any) => {
+  const handleCreateProvider = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const newProvider = `Dr ${providerForm.name}`;
+      setProviders([...providers, newProvider]);
+      setShowModal(false);
+      setProviderForm({ name: '', specialty: '' });
+    } catch (error: any) {
+      setError('Failed to create provider');
+    }
+  };
+
+  const openModal = (type: 'patient' | 'appointment' | 'prescription' | 'provider', item?: any) => {
     setModalType(type);
     setEditingItem(item);
     setShowModal(true);
@@ -209,6 +234,8 @@ const AdminEMR: React.FC = () => {
       } else {
         setPrescriptionForm({ medication: '', dosage: '', quantity: 1, refill_on: '', refill_schedule: 'monthly' });
       }
+    } else if (type === 'provider') {
+      setProviderForm({ name: '', specialty: '' });
     }
   };
 
@@ -230,7 +257,7 @@ const AdminEMR: React.FC = () => {
         <div className="modal-content">
           <div className="modal-header">
             <h2>
-              {editingItem ? 'Edit' : 'Add'} {modalType === 'patient' ? 'Patient' : modalType === 'appointment' ? 'Appointment' : 'Prescription'}
+              {editingItem ? 'Edit' : 'Add'} {modalType === 'patient' ? 'Patient' : modalType === 'appointment' ? 'Appointment' : modalType === 'prescription' ? 'Prescription' : 'Provider'}
             </h2>
             <button className="close-btn" onClick={() => setShowModal(false)}>×</button>
           </div>
@@ -242,7 +269,9 @@ const AdminEMR: React.FC = () => {
               ? (editingItem ? handleUpdatePatient : handleCreatePatient)
               : modalType === 'appointment'
               ? (editingItem ? handleUpdateAppointment : handleCreateAppointment)
-              : (editingItem ? handleUpdatePrescription : handleCreatePrescription)
+              : modalType === 'prescription'
+              ? (editingItem ? handleUpdatePrescription : handleCreatePrescription)
+              : handleCreateProvider
           }>
             {modalType === 'patient' && (
               <>
@@ -376,6 +405,34 @@ const AdminEMR: React.FC = () => {
               </>
             )}
 
+            {modalType === 'provider' && (
+              <>
+                <div className="form-group">
+                  <label>Provider Name:</label>
+                  <input
+                    type="text"
+                    value={providerForm.name}
+                    onChange={(e) => setProviderForm({ ...providerForm, name: e.target.value })}
+                    placeholder="e.g., John Smith"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Specialty:</label>
+                  <select
+                    value={providerForm.specialty}
+                    onChange={(e) => setProviderForm({ ...providerForm, specialty: e.target.value })}
+                    required
+                  >
+                    <option value="">Select specialty</option>
+                    {specialties.map(specialty => (
+                      <option key={specialty} value={specialty}>{specialty}</option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
+
             <div style={{ marginTop: '20px' }}>
               <button type="submit" className="btn btn-success">
                 {editingItem ? 'Update' : 'Create'}
@@ -395,9 +452,14 @@ const AdminEMR: React.FC = () => {
       <div className="container">
         <div className="nav">
           <h1>Zealthy EMR - Admin Panel</h1>
-          <button className="btn" onClick={() => openModal('patient')}>
-            Add New Patient
-          </button>
+          <div>
+            <button className="btn" onClick={() => openModal('patient')} style={{ marginRight: '10px' }}>
+              Add New Patient
+            </button>
+            <button className="btn" onClick={() => openModal('provider')}>
+              Add New Provider
+            </button>
+          </div>
         </div>
 
         {error && <div className="alert alert-error">{error}</div>}
