@@ -7,9 +7,20 @@ const PatientPortal: React.FC = () => {
   const [dashboard, setDashboard] = useState<PatientDashboard | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'appointments' | 'prescriptions'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'appointments' | 'prescriptions' | 'book-appointment'>('dashboard');
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
+  
+  // Appointment booking state
+  const [bookingForm, setBookingForm] = useState({
+    provider: '',
+    date: '',
+    time: '',
+    repeat: 'none' as 'weekly' | 'monthly' | 'none'
+  });
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [providers] = useState(['Dr Kim West', 'Dr Lin James', 'Dr Sally Field']);
+  const [showBookingModal, setShowBookingModal] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -78,7 +89,7 @@ const PatientPortal: React.FC = () => {
     setCurrentView('dashboard');
   };
 
-  const handleViewChange = (view: 'dashboard' | 'appointments' | 'prescriptions') => {
+  const handleViewChange = (view: 'dashboard' | 'appointments' | 'prescriptions' | 'book-appointment') => {
     setCurrentView(view);
     if (user) {
       if (view === 'appointments') {
@@ -87,6 +98,67 @@ const PatientPortal: React.FC = () => {
         loadPrescriptions(user.id);
       }
     }
+  };
+
+  // Appointment booking functions
+  const loadAvailableSlots = async (provider: string, date: string) => {
+    try {
+      console.log(`Loading availability for ${provider} on ${date}`);
+      const availability = await appointmentAPI.getProviderAvailability(provider, date);
+      console.log('Availability response:', availability);
+      setAvailableSlots(availability.availableSlots);
+    } catch (error) {
+      console.error('Error loading availability:', error);
+      setAvailableSlots([]);
+    }
+  };
+
+  const handleBookingFormChange = async (field: string, value: string) => {
+    const updatedForm = { ...bookingForm, [field]: value };
+    setBookingForm(updatedForm);
+    
+    // Load available slots when provider or date changes
+    if (field === 'provider' && value && updatedForm.date) {
+      await loadAvailableSlots(value, updatedForm.date);
+    } else if (field === 'date' && value && updatedForm.provider) {
+      await loadAvailableSlots(updatedForm.provider, value);
+    }
+  };
+
+  const handleBookAppointment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+
+    try {
+      const datetime = `${bookingForm.date}T${bookingForm.time}`;
+      await appointmentAPI.bookAppointment(user.id, {
+        provider: bookingForm.provider,
+        datetime,
+        repeat: bookingForm.repeat
+      });
+
+      setError('');
+      setShowBookingModal(false);
+      setBookingForm({ provider: '', date: '', time: '', repeat: 'none' });
+      setAvailableSlots([]);
+      
+      // Reload dashboard and appointments
+      await loadDashboard(user.id);
+      await loadAppointments(user.id);
+      
+      alert('Appointment booked successfully!');
+    } catch (error: any) {
+      setError(error.response?.data?.message || 'Failed to book appointment');
+    }
+  };
+
+  const formatTimeSlot = (slot: string) => {
+    const date = new Date(slot);
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
   };
 
   const formatDate = (dateString: string) => {
@@ -163,6 +235,12 @@ const PatientPortal: React.FC = () => {
             onClick={() => handleViewChange('prescriptions')}
           >
             Prescriptions
+          </button>
+          <button 
+            className="btn btn-success"
+            onClick={() => setShowBookingModal(true)}
+          >
+            Book Appointment
           </button>
           <button className="btn btn-secondary" onClick={handleLogout}>
             Logout
@@ -273,6 +351,94 @@ const PatientPortal: React.FC = () => {
           ) : (
             <p>No current prescriptions.</p>
           )}
+        </div>
+      )}
+
+      {/* Appointment Booking Modal */}
+      {showBookingModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2>Book New Appointment</h2>
+              <button className="close-btn" onClick={() => setShowBookingModal(false)}>
+                ×
+              </button>
+            </div>
+            
+            <form onSubmit={handleBookAppointment}>
+              <div className="form-group">
+                <label>Provider:</label>
+                <select
+                  value={bookingForm.provider}
+                  onChange={(e) => handleBookingFormChange('provider', e.target.value)}
+                  required
+                >
+                  <option value="">Select a provider</option>
+                  {providers.map(provider => (
+                    <option key={provider} value={provider}>{provider}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label>Date:</label>
+                <input
+                  type="date"
+                  value={bookingForm.date}
+                  onChange={(e) => handleBookingFormChange('date', e.target.value)}
+                  min={new Date().toISOString().split('T')[0]}
+                  required
+                />
+              </div>
+
+              {bookingForm.provider && bookingForm.date && availableSlots.length > 0 && (
+                <div className="form-group">
+                  <label>Available Time Slots:</label>
+                  <select
+                    value={bookingForm.time}
+                    onChange={(e) => setBookingForm(prev => ({ ...prev, time: e.target.value }))}
+                    required
+                  >
+                    <option value="">Select a time slot</option>
+                    {availableSlots.map(slot => (
+                      <option key={slot} value={new Date(slot).toTimeString().slice(0, 5)}>
+                        {formatTimeSlot(slot)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {bookingForm.provider && bookingForm.date && availableSlots.length === 0 && (
+                <div className="alert alert-error">
+                  No available slots for {bookingForm.provider} on {new Date(bookingForm.date).toLocaleDateString()}.
+                </div>
+              )}
+
+              <div className="form-group">
+                <label>Repeat:</label>
+                <select
+                  value={bookingForm.repeat}
+                  onChange={(e) => setBookingForm(prev => ({ ...prev, repeat: e.target.value as 'weekly' | 'monthly' | 'none' }))}
+                >
+                  <option value="none">No repeat</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+
+              {error && <div className="alert alert-error">{error}</div>}
+
+              <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
+                <button type="submit" className="btn btn-success" disabled={!bookingForm.provider || !bookingForm.date || !bookingForm.time}>
+                  Book Appointment
+                </button>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowBookingModal(false)}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

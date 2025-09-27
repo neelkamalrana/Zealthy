@@ -126,6 +126,28 @@ export const appointmentAPI = {
     const response = await api.get(`/patient/${userId}/appointments`);
     return response.data;
   },
+
+  // New appointment booking functions
+  bookAppointment: async (userId: string, appointmentData: {
+    provider: string;
+    datetime: string;
+    repeat?: 'weekly' | 'monthly' | 'none';
+  }): Promise<{ message: string; appointment: Appointment }> => {
+    const response = await api.post('/appointments/book', {
+      userId,
+      ...appointmentData
+    });
+    return response.data;
+  },
+
+  getProviderAvailability: async (provider: string, date: string): Promise<{
+    provider: string;
+    date: string;
+    availableSlots: string[];
+  }> => {
+    const response = await api.get(`/appointments/availability/${provider}?date=${date}`);
+    return response.data;
+  },
 };
 
 // Prescription API

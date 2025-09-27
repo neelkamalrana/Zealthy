@@ -496,6 +496,152 @@ app.get('/api/patient/:userId/prescriptions', (req, res) => {
   }
 });
 
+// Book appointment endpoint
+app.post('/api/appointments/book', (req, res) => {
+  try {
+    const { userId, provider, datetime, repeat = 'none' } = req.body;
+
+    // Validate required fields
+    if (!userId || !provider || !datetime) {
+      return res.status(400).json({ 
+        message: 'Missing required fields: userId, provider, datetime' 
+      });
+    }
+
+    // Find the user
+    const user = demoUsers.find(u => u.id === userId);
+    if (!user) {
+      return res.status(404).json({ message: 'Patient not found' });
+    }
+
+    // Parse the appointment datetime
+    const appointmentDate = new Date(datetime);
+    const appointmentEndDate = new Date(appointmentDate.getTime() + 30 * 60000); // 30 minutes duration
+
+    // Check for conflicts with existing appointments
+    const hasConflict = demoUsers.some(u => {
+      return u.appointments?.some(apt => {
+        const existingStart = new Date(apt.datetime);
+        const existingEnd = new Date(existingStart.getTime() + 30 * 60000); // 30 minutes duration
+        
+        // Check if appointments overlap
+        return (appointmentDate < existingEnd && appointmentEndDate > existingStart);
+      });
+    });
+
+    if (hasConflict) {
+      return res.status(409).json({ 
+        message: 'Appointment time conflicts with an existing appointment. Please choose a different time.' 
+      });
+    }
+
+    // Check if the appointment is in the past
+    if (appointmentDate < new Date()) {
+      return res.status(400).json({ 
+        message: 'Cannot book appointments in the past' 
+      });
+    }
+
+    // Create new appointment
+    const newAppointment = {
+      id: Date.now().toString(),
+      provider,
+      datetime,
+      repeat,
+      isActive: true
+    };
+
+    // Add appointment to user
+    if (!user.appointments) {
+      user.appointments = [];
+    }
+    user.appointments.push(newAppointment);
+
+    res.status(201).json({
+      message: 'Appointment booked successfully',
+      appointment: newAppointment
+    });
+
+  } catch (error) {
+    console.error('Book appointment error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get available appointment slots for a provider
+app.get('/api/appointments/availability/:provider', (req, res) => {
+  try {
+    const { provider } = req.params;
+    const { date } = req.query;
+
+    if (!date) {
+      return res.status(400).json({ message: 'Date parameter is required' });
+    }
+
+    // Parse the date properly to avoid timezone issues
+    const requestedDate = new Date(date as string + 'T00:00:00');
+    const startOfDay = new Date(requestedDate);
+    startOfDay.setHours(9, 0, 0, 0); // 9 AM
+    const endOfDay = new Date(requestedDate);
+    endOfDay.setHours(17, 0, 0, 0); // 5 PM
+
+    console.log(`Checking availability for ${provider} on ${requestedDate.toDateString()}`);
+
+    // Get all existing appointments for the date
+    const existingAppointments: Date[] = [];
+    demoUsers.forEach(user => {
+      user.appointments?.forEach(apt => {
+        if (apt.provider === provider) {
+          const aptDate = new Date(apt.datetime);
+          // Compare dates by date string to avoid timezone issues
+          if (aptDate.toDateString() === requestedDate.toDateString()) {
+            existingAppointments.push(aptDate);
+            console.log(`Found existing appointment: ${aptDate.toISOString()}`);
+          }
+        }
+      });
+    });
+
+    console.log(`Found ${existingAppointments.length} existing appointments for ${provider} on ${requestedDate.toDateString()}`);
+
+    // Generate available slots (every 30 minutes from 9 AM to 5 PM)
+    const availableSlots = [];
+    const current = new Date(startOfDay);
+    
+    while (current < endOfDay) {
+      const slotTime = new Date(current);
+      const isAvailable = !existingAppointments.some(apt => {
+        const aptTime = new Date(apt);
+        // Check if the slot overlaps with existing appointment (30-minute duration)
+        const slotStart = slotTime.getTime();
+        const slotEnd = slotTime.getTime() + 30 * 60000;
+        const aptStart = aptTime.getTime();
+        const aptEnd = aptTime.getTime() + 30 * 60000;
+        
+        return (slotStart < aptEnd && slotEnd > aptStart);
+      });
+      
+      if (isAvailable) {
+        availableSlots.push(slotTime.toISOString());
+      }
+      
+      current.setMinutes(current.getMinutes() + 30);
+    }
+
+    console.log(`Generated ${availableSlots.length} available slots`);
+
+    res.json({
+      provider,
+      date: requestedDate.toISOString(),
+      availableSlots
+    });
+
+  } catch (error) {
+    console.error('Get availability error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ message: 'Zealthy EMR API is running' });
