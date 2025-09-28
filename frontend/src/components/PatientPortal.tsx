@@ -133,18 +133,31 @@ const PatientPortal: React.FC = () => {
 
     try {
       const datetime = `${bookingForm.date}T${bookingForm.time}`;
-      await appointmentAPI.bookAppointment(user.id, {
+      const response = await appointmentAPI.bookAppointment(user.id, {
         provider: bookingForm.provider,
         datetime,
         repeat: bookingForm.repeat
       });
+
+      // Update the user data in localStorage with the new appointment
+      const updatedUser = { ...user };
+      if (!updatedUser.appointments) {
+        updatedUser.appointments = [];
+      }
+      updatedUser.appointments.push(response.appointment);
+      
+      // Update localStorage with the new user data
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      // Update the state
+      setUser(updatedUser);
 
       setError('');
       setShowBookingModal(false);
       setBookingForm({ provider: '', date: '', time: '', repeat: 'none' });
       setAvailableSlots([]);
       
-      // Reload dashboard and appointments
+      // Reload dashboard and appointments with updated data
       await loadDashboard(user.id);
       await loadAppointments(user.id);
       

@@ -60,7 +60,7 @@ export interface LoginResponse {
 // Auth API
 export const authAPI = {
   login: async (email: string, password: string): Promise<LoginResponse> => {
-    const response = await api.post('/login', { email, password });
+    const response = await api.post('/auth/login', { email, password });
     return response.data;
   },
 };
@@ -92,8 +92,32 @@ export const patientAPI = {
   },
 
   getPatientDashboard: async (userId: string): Promise<PatientDashboard> => {
-    const response = await api.get(`/patient/${userId}/dashboard`);
-    return response.data;
+    // Since the user data is already available from login, we'll return a mock dashboard
+    // In a real app, this would call a dedicated dashboard endpoint
+    const userData = localStorage.getItem('user');
+    if (!userData) throw new Error('User not found');
+    
+    const user = JSON.parse(userData);
+    
+    // Create dashboard data from user's appointments and prescriptions
+    const upcomingAppointments = user.appointments?.filter((apt: any) => {
+      const aptDate = new Date(apt.datetime);
+      const now = new Date();
+      return aptDate >= now && apt.isActive;
+    }).slice(0, 3) || [];
+    
+    const upcomingRefills = user.prescriptions?.filter((pres: any) => {
+      const endDate = new Date(pres.endDate);
+      const now = new Date();
+      const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      return endDate <= sevenDaysFromNow && pres.isActive;
+    }) || [];
+    
+    return {
+      patient: user,
+      upcomingAppointments,
+      upcomingRefills
+    };
   },
 };
 
@@ -123,8 +147,12 @@ export const appointmentAPI = {
   },
 
   getPatientAppointments: async (userId: string): Promise<Appointment[]> => {
-    const response = await api.get(`/patient/${userId}/appointments`);
-    return response.data;
+    // Get appointments from user data in localStorage
+    const userData = localStorage.getItem('user');
+    if (!userData) throw new Error('User not found');
+    
+    const user = JSON.parse(userData);
+    return user.appointments || [];
   },
 
   // New appointment booking functions
@@ -179,8 +207,12 @@ export const prescriptionAPI = {
   },
 
   getPatientPrescriptions: async (userId: string): Promise<Prescription[]> => {
-    const response = await api.get(`/patient/${userId}/prescriptions`);
-    return response.data;
+    // Get prescriptions from user data in localStorage
+    const userData = localStorage.getItem('user');
+    if (!userData) throw new Error('User not found');
+    
+    const user = JSON.parse(userData);
+    return user.prescriptions || [];
   },
 };
 

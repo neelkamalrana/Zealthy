@@ -1,0 +1,474 @@
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { v4 as uuidv4 } from 'uuid';
+import { createTables } from './utils/createTables';
+import { UserService, ProviderService, MedicationService, User, Appointment, Prescription, Provider } from './models/DynamoDB';
+
+// Load environment variables
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 5001;
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+
+app.use(cors());
+app.use(express.json());
+
+// Initialize DynamoDB tables
+async function initializeDatabase() {
+  try {
+    console.log('🔧 Initializing DynamoDB tables...');
+    await createTables();
+    
+    console.log('✅ Database initialization completed!');
+  } catch (error) {
+    console.error('❌ Database initialization failed:', error);
+  }
+}
+
+// Auth middleware
+const authenticateToken = (req: any, res: any, next: any) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ message: 'Access token required' });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
+    if (err) {
+      return res.status(403).json({ message: 'Invalid token' });
+    }
+    req.user = user;
+    next();
+  });
+};
+
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ message: 'Zealthy EMR API is running' });
+});
+
+// Login
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password required' });
+    }
+
+    const user = await UserService.getByEmail(email);
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '24h' });
+
+    // Remove password from response
+    const { password: _, ...userWithoutPassword } = user;
+
+    res.json({
+      message: 'Login successful',
+      token,
+      user: userWithoutPassword
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get patient dashboard
+app.get('/api/patient/dashboard', authenticateToken, async (req: any, res) => {
+  try {
+    const user = await UserService.getById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'Patient not found' });
+    }
+
+    const upcomingAppointments = user.appointments?.filter(apt => 
+      new Date(apt.datetime) > new Date() && apt.isActive
+    ).slice(0, 3) || [];
+
+    const upcomingRefills = user.prescriptions?.filter(pres => 
+      pres.isActive && new Date(pres.endDate) > new Date()
+    ).slice(0, 3) || [];
+
+    const dashboard = {
+      patient: {
+        id: user.id,
+        name: user.name,
+        email: user.email
+      },
+      upcomingAppointments,
+      upcomingRefills
+    };
+
+    res.json(dashboard);
+  } catch (error) {
+    console.error('Dashboard error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get all patients (admin)
+app.get('/api/admin/patients', async (req, res) => {
+  try {
+    const patients = await UserService.getAll();
+    const patientsWithoutPasswords = patients.map(({ password, ...patient }) => patient);
+    res.json(patientsWithoutPasswords);
+  } catch (error) {
+    console.error('Get patients error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get patient by ID (admin)
+app.get('/api/admin/patients/:id', async (req, res) => {
+  try {
+    const patient = await UserService.getById(req.params.id);
+    if (!patient) {
+      return res.status(404).json({ message: 'Patient not found' });
+    }
+    
+    const { password, ...patientWithoutPassword } = patient;
+    res.json(patientWithoutPassword);
+  } catch (error) {
+    console.error('Get patient error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Create patient (admin)
+app.post('/api/admin/patients', async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: 'Name, email, and password are required' });
+    }
+
+    // Check if user already exists
+    const existingUser = await UserService.getByEmail(email);
+    if (existingUser) {
+      return res.status(409).json({ message: 'User with this email already exists' });
+    }
+
+    const newUser: User = {
+      id: uuidv4(),
+      name,
+      email,
+      password, // Pass plain password - UserService.create will hash it
+      appointments: [],
+      prescriptions: []
+    };
+
+    const createdUser = await UserService.create(newUser);
+    const { password: _, ...userWithoutPassword } = createdUser;
+
+    res.status(201).json({
+      message: 'Patient created successfully',
+      patient: userWithoutPassword
+    });
+  } catch (error) {
+    console.error('Create patient error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Update patient (admin)
+app.put('/api/admin/patients/:id', async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+
+    const updates: Partial<User> = {};
+    if (name) updates.name = name;
+    if (email) updates.email = email;
+    if (password) updates.password = await bcrypt.hash(password, 10);
+
+    const updatedUser = await UserService.update(req.params.id, updates);
+    const { password: _, ...userWithoutPassword } = updatedUser;
+
+    res.json({
+      message: 'Patient updated successfully',
+      patient: userWithoutPassword
+    });
+  } catch (error) {
+    console.error('Update patient error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Delete patient (admin)
+app.delete('/api/admin/patients/:id', async (req, res) => {
+  try {
+    await UserService.delete(req.params.id);
+    res.json({ message: 'Patient deleted successfully' });
+  } catch (error) {
+    console.error('Delete patient error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Create appointment (admin)
+app.post('/api/admin/patients/:id/appointments', async (req, res) => {
+  try {
+    const { provider, datetime, repeat } = req.body;
+
+    const user = await UserService.getById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: 'Patient not found' });
+    }
+
+    const newAppointment: Appointment = {
+      id: uuidv4(),
+      provider,
+      datetime,
+      repeat: repeat || 'none',
+      isActive: true
+    };
+
+    if (!user.appointments) {
+      user.appointments = [];
+    }
+    user.appointments.push(newAppointment);
+
+    await UserService.update(req.params.id, { appointments: user.appointments });
+
+    res.status(201).json({
+      message: 'Appointment created successfully',
+      appointment: newAppointment
+    });
+  } catch (error) {
+    console.error('Create appointment error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Create prescription (admin)
+app.post('/api/admin/patients/:id/prescriptions', async (req, res) => {
+  try {
+    const { medication, dosage, instructions, startDate, endDate, refill_schedule } = req.body;
+
+    const user = await UserService.getById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ message: 'Patient not found' });
+    }
+
+    const newPrescription: Prescription = {
+      id: uuidv4(),
+      medication,
+      dosage,
+      instructions,
+      startDate,
+      endDate,
+      refill_schedule,
+      isActive: true
+    };
+
+    if (!user.prescriptions) {
+      user.prescriptions = [];
+    }
+    user.prescriptions.push(newPrescription);
+
+    await UserService.update(req.params.id, { prescriptions: user.prescriptions });
+
+    res.status(201).json({
+      message: 'Prescription created successfully',
+      prescription: newPrescription
+    });
+  } catch (error) {
+    console.error('Create prescription error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get providers
+app.get('/api/providers', async (req, res) => {
+  try {
+    const providers = await ProviderService.getAll();
+    res.json(providers);
+  } catch (error) {
+    console.error('Get providers error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Create provider (admin)
+app.post('/api/admin/providers', async (req, res) => {
+  try {
+    const { name, specialty } = req.body;
+
+    const newProvider: Provider = {
+      id: uuidv4(),
+      name,
+      specialty,
+      isActive: true
+    };
+
+    const createdProvider = await ProviderService.create(newProvider);
+
+    res.status(201).json({
+      message: 'Provider created successfully',
+      provider: createdProvider
+    });
+  } catch (error) {
+    console.error('Create provider error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Book appointment (patient)
+app.post('/api/appointments/book', async (req, res) => {
+  try {
+    const { userId, provider, datetime, repeat = 'none' } = req.body;
+
+    if (!userId || !provider || !datetime) {
+      return res.status(400).json({ 
+        message: 'Missing required fields: userId, provider, datetime' 
+      });
+    }
+
+    const user = await UserService.getById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'Patient not found' });
+    }
+
+    const appointmentDate = new Date(datetime);
+    const appointmentEndDate = new Date(appointmentDate.getTime() + 30 * 60000); // 30 minutes duration
+
+    // Check for conflicts
+    const hasConflict = user.appointments?.some(apt => {
+      const existingStart = new Date(apt.datetime);
+      const existingEnd = new Date(existingStart.getTime() + 30 * 60000);
+      
+      return (appointmentDate < existingEnd && appointmentEndDate > existingStart);
+    });
+
+    if (hasConflict) {
+      return res.status(409).json({ 
+        message: 'Appointment time conflicts with an existing appointment. Please choose a different time.' 
+      });
+    }
+
+    if (appointmentDate < new Date()) {
+      return res.status(400).json({ 
+        message: 'Cannot book appointments in the past' 
+      });
+    }
+
+    const newAppointment: Appointment = {
+      id: uuidv4(),
+      provider,
+      datetime,
+      repeat,
+      isActive: true
+    };
+
+    if (!user.appointments) {
+      user.appointments = [];
+    }
+    user.appointments.push(newAppointment);
+
+    await UserService.update(userId, { appointments: user.appointments });
+
+    res.status(201).json({
+      message: 'Appointment booked successfully',
+      appointment: newAppointment
+    });
+
+  } catch (error) {
+    console.error('Book appointment error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get provider availability
+app.get('/api/appointments/availability/:provider', async (req, res) => {
+  try {
+    const { provider } = req.params;
+    const { date } = req.query;
+
+    if (!date) {
+      return res.status(400).json({ message: 'Date parameter is required' });
+    }
+
+    const requestedDate = new Date(date as string + 'T00:00:00');
+    const startOfDay = new Date(requestedDate);
+    startOfDay.setHours(9, 0, 0, 0); // 9 AM
+    const endOfDay = new Date(requestedDate);
+    endOfDay.setHours(17, 0, 0, 0); // 5 PM
+
+    // Get all users to check for existing appointments
+    const allUsers = await UserService.getAll();
+    const existingAppointments: Date[] = [];
+    
+    allUsers.forEach(user => {
+      user.appointments?.forEach(apt => {
+        if (apt.provider === provider) {
+          const aptDate = new Date(apt.datetime);
+          if (aptDate.toDateString() === requestedDate.toDateString()) {
+            existingAppointments.push(aptDate);
+          }
+        }
+      });
+    });
+
+    const availableSlots = [];
+    const current = new Date(startOfDay);
+    
+    while (current < endOfDay) {
+      const slotTime = new Date(current);
+      const isAvailable = !existingAppointments.some(apt => {
+        const aptTime = new Date(apt);
+        const slotStart = slotTime.getTime();
+        const slotEnd = slotTime.getTime() + 30 * 60000;
+        const aptStart = aptTime.getTime();
+        const aptEnd = aptTime.getTime() + 30 * 60000;
+        
+        return (slotStart < aptEnd && slotEnd > aptStart);
+      });
+      
+      if (isAvailable) {
+        availableSlots.push(slotTime.toISOString());
+      }
+      
+      current.setMinutes(current.getMinutes() + 30);
+    }
+
+    res.json({
+      provider,
+      date: requestedDate.toISOString(),
+      availableSlots
+    });
+
+  } catch (error) {
+    console.error('Get availability error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Initialize database and start server
+async function startServer() {
+  await initializeDatabase();
+  
+  app.listen(PORT, () => {
+    console.log(`✅ Server is running on port ${PORT}`);
+    console.log(`🌐 API available at: http://localhost:${PORT}/api`);
+    console.log(`❤️  Health check: http://localhost:${PORT}/api/health`);
+    console.log(`🎉 DynamoDB mode - Data will persist between server restarts!`);
+    console.log(`   Email: mark@some-email-provider.net`);
+    console.log(`   Password: Password123!`);
+  });
+}
+
+startServer().catch(console.error);

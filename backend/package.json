@@ -4,9 +4,10 @@
   "description": "Backend for Zealthy EMR and Patient Portal",
   "main": "dist/index.js",
   "scripts": {
-    "start": "node dist/index-demo.js",
-    "dev": "nodemon src/index-demo.ts",
+    "start": "node dist/index.js",
+    "dev": "nodemon src/index.ts",
     "build": "tsc",
+    "create-tables": "ts-node src/utils/createTables.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -22,13 +23,17 @@
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "@aws-sdk/client-dynamodb": "^3.478.0",
+    "@aws-sdk/lib-dynamodb": "^3.478.0",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.5",
+    "@types/uuid": "^9.0.7",
     "@types/node": "^20.10.4",
     "nodemon": "^3.0.2",
     "ts-node": "^10.9.1",
