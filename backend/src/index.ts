@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { createTables } from './utils/createTables';
-import { UserService, ProviderService, MedicationService, User, Appointment, Prescription, Provider } from './models/DynamoDB';
+import { UserService, ProviderService, MedicationService, User, Appointment, Prescription, Provider, Medication } from './models/DynamoDB';
 
 // Load environment variables
 dotenv.config();
@@ -124,8 +124,20 @@ app.get('/api/patient/dashboard', authenticateToken, async (req: any, res) => {
 app.get('/api/admin/patients', async (req, res) => {
   try {
     const patients = await UserService.getAll();
-    const patientsWithoutPasswords = patients.map(({ password, ...patient }) => patient);
-    res.json(patientsWithoutPasswords);
+    const patientsWithSummary = patients.map(({ password, ...patient }) => {
+      const activeAppointments = patient.appointments?.filter(apt => apt.isActive) || [];
+      const nextAppointment = activeAppointments
+        .filter(apt => new Date(apt.datetime) >= new Date())
+        .sort((a, b) => new Date(a.datetime).getTime() - new Date(b.datetime).getTime())[0];
+
+      return {
+        ...patient,
+        totalAppointments: activeAppointments.length,
+        totalPrescriptions: patient.prescriptions?.filter(pres => pres.isActive).length || 0,
+        nextAppointment: nextAppointment || null
+      };
+    });
+    res.json(patientsWithSummary);
   } catch (error) {
     console.error('Get patients error:', error);
     res.status(500).json({ message: 'Server error' });
@@ -324,6 +336,47 @@ app.post('/api/admin/providers', async (req, res) => {
   } catch (error) {
     console.error('Create provider error:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get all medications (admin)
+app.get('/api/admin/medications', async (req, res) => {
+  try {
+    const medications = await MedicationService.getAll();
+    res.json(medications);
+  } catch (error) {
+    console.error('Get medications error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Create new medication (admin)
+app.post('/api/admin/medications', async (req, res) => {
+  try {
+    const { name, dosages } = req.body;
+
+    if (!name || !dosages || !Array.isArray(dosages)) {
+      return res.status(400).json({ 
+        message: 'Name and dosages array are required' 
+      });
+    }
+
+    const newMedication: Medication = {
+      id: uuidv4(),
+      name,
+      dosages,
+      isActive: true
+    };
+
+    const createdMedication = await MedicationService.create(newMedication);
+
+    res.status(201).json({
+      message: 'Medication created successfully',
+      medication: createdMedication
+    });
+  } catch (error) {
+    console.error('Create medication error:', error);
+    res.status(500).json({ message: 'Failed to create medication' });
   }
 });
 

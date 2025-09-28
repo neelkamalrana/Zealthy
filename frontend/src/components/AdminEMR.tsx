@@ -43,6 +43,13 @@ const AdminEMR: React.FC = () => {
 
   useEffect(() => {
     loadPatients();
+    
+    // Auto-refresh patient list every 30 seconds to catch updates from patient portal
+    const interval = setInterval(() => {
+      loadPatients();
+    }, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const loadPatients = async () => {
@@ -484,7 +491,17 @@ const AdminEMR: React.FC = () => {
         {error && <div className="alert alert-error">{error}</div>}
 
         <div className="card">
-          <h2>Patient List</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+            <h2>Patient List</h2>
+            <button 
+              className="btn btn-secondary" 
+              onClick={loadPatients}
+              disabled={loading}
+              style={{ fontSize: '0.9rem', padding: '0.5rem 1rem' }}
+            >
+              {loading ? 'Refreshing...' : '🔄 Refresh'}
+            </button>
+          </div>
           {loading ? (
             <p>Loading patients...</p>
           ) : (

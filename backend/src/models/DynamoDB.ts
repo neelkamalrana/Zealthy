@@ -47,8 +47,8 @@ export interface Provider {
 export interface Medication {
   id: string;
   name: string;
-  dosage: string;
-  instructions: string;
+  dosages: string[];
+  isActive: boolean;
 }
 
 export class UserService {
