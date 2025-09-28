@@ -108,9 +108,11 @@ const PatientPortal: React.FC = () => {
       console.log(`Loading availability for ${provider} on ${date}`);
       const availability = await appointmentAPI.getProviderAvailability(provider, date);
       console.log('Availability response:', availability);
-      setAvailableSlots(availability.availableSlots);
+      console.log('Available slots count:', availability.availableSlots?.length || 0);
+      setAvailableSlots(availability.availableSlots || []);
     } catch (error) {
       console.error('Error loading availability:', error);
+      console.error('Error details:', error);
       setAvailableSlots([]);
     }
   };
@@ -450,27 +452,27 @@ const PatientPortal: React.FC = () => {
                 />
               </div>
 
-              {bookingForm.provider && bookingForm.date && availableSlots.length > 0 && (
+              {bookingForm.provider && bookingForm.date && (
                 <div className="form-group">
                   <label>Available Time Slots:</label>
-                  <select
-                    value={bookingForm.time}
-                    onChange={(e) => setBookingForm(prev => ({ ...prev, time: e.target.value }))}
-                    required
-                  >
-                    <option value="">Select a time slot</option>
-                    {availableSlots.map(slot => (
-                      <option key={slot} value={new Date(slot).toTimeString().slice(0, 5)}>
-                        {formatTimeSlot(slot)}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {bookingForm.provider && bookingForm.date && availableSlots.length === 0 && (
-                <div className="alert alert-error">
-                  No available slots for {bookingForm.provider} on {new Date(bookingForm.date).toLocaleDateString()}.
+                  {availableSlots.length > 0 ? (
+                    <select
+                      value={bookingForm.time}
+                      onChange={(e) => setBookingForm(prev => ({ ...prev, time: e.target.value }))}
+                      required
+                    >
+                      <option value="">Select a time slot</option>
+                      {availableSlots.map(slot => (
+                        <option key={slot} value={new Date(slot).toTimeString().slice(0, 5)}>
+                          {formatTimeSlot(slot)}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="alert alert-error">
+                      No available slots for {bookingForm.provider} on {new Date(bookingForm.date).toLocaleDateString()}.
+                    </div>
+                  )}
                 </div>
               )}
 

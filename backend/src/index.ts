@@ -399,17 +399,39 @@ app.post('/api/appointments/book', async (req, res) => {
     const appointmentDate = new Date(datetime);
     const appointmentEndDate = new Date(appointmentDate.getTime() + 30 * 60000); // 30 minutes duration
 
-    // Check for conflicts
-    const hasConflict = user.appointments?.some(apt => {
+    // Check for conflicts within the same user
+    const hasUserConflict = user.appointments?.some(apt => {
       const existingStart = new Date(apt.datetime);
       const existingEnd = new Date(existingStart.getTime() + 30 * 60000);
       
       return (appointmentDate < existingEnd && appointmentEndDate > existingStart);
     });
 
-    if (hasConflict) {
+    if (hasUserConflict) {
       return res.status(409).json({ 
-        message: 'Appointment time conflicts with an existing appointment. Please choose a different time.' 
+        message: 'Appointment time conflicts with your existing appointment. Please choose a different time.' 
+      });
+    }
+
+    // Check for provider conflicts across all users
+    const allUsers = await UserService.getAll();
+    const hasProviderConflict = allUsers.some(u => {
+      return u.appointments?.some(apt => {
+        // Only check appointments with the same provider
+        if (apt.provider !== provider || !apt.isActive) {
+          return false;
+        }
+        
+        const existingStart = new Date(apt.datetime);
+        const existingEnd = new Date(existingStart.getTime() + 30 * 60000);
+        
+        return (appointmentDate < existingEnd && appointmentEndDate > existingStart);
+      });
+    });
+
+    if (hasProviderConflict) {
+      return res.status(409).json({ 
+        message: `Appointment time conflicts with ${provider}'s existing appointment. Please choose a different time.` 
       });
     }
 
@@ -459,7 +481,7 @@ app.get('/api/appointments/availability/:provider', async (req, res) => {
     const startOfDay = new Date(requestedDate);
     startOfDay.setHours(9, 0, 0, 0); // 9 AM
     const endOfDay = new Date(requestedDate);
-    endOfDay.setHours(17, 0, 0, 0); // 5 PM
+    endOfDay.setHours(21, 0, 0, 0); // 9 PM
 
     // Get all users to check for existing appointments
     const allUsers = await UserService.getAll();
@@ -492,7 +514,13 @@ app.get('/api/appointments/availability/:provider', async (req, res) => {
       });
       
       if (isAvailable) {
-        availableSlots.push(slotTime.toISOString());
+        // Format as YYYY-MM-DDTHH:MM for local time
+        const year = slotTime.getFullYear();
+        const month = String(slotTime.getMonth() + 1).padStart(2, '0');
+        const day = String(slotTime.getDate()).padStart(2, '0');
+        const hours = String(slotTime.getHours()).padStart(2, '0');
+        const minutes = String(slotTime.getMinutes()).padStart(2, '0');
+        availableSlots.push(`${year}-${month}-${day}T${hours}:${minutes}`);
       }
       
       current.setMinutes(current.getMinutes() + 30);

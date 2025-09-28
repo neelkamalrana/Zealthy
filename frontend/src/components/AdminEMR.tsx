@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { patientAPI, appointmentAPI, prescriptionAPI, User, Appointment, Prescription } from '../services/api';
+import { patientAPI, appointmentAPI, prescriptionAPI, User } from '../services/api';
 
 const AdminEMR: React.FC = () => {
-  const navigate = useNavigate();
   const [patients, setPatients] = useState<User[]>([]);
   const [selectedPatient, setSelectedPatient] = useState<User | null>(null);
   const [currentView, setCurrentView] = useState<'patients' | 'patient-details'>('patients');
@@ -15,7 +13,7 @@ const AdminEMR: React.FC = () => {
 
   // Form states
   const [patientForm, setPatientForm] = useState({ name: '', email: '', password: '' });
-  const [appointmentForm, setAppointmentForm] = useState({ provider: '', datetime: '', repeat: 'none' as 'weekly' | 'monthly' | 'none' });
+  const [appointmentForm, setAppointmentForm] = useState({ provider: '', date: '', time: '', repeat: 'none' as 'weekly' | 'monthly' | 'none' });
   const [prescriptionForm, setPrescriptionForm] = useState({ 
     medication: '', 
     dosage: '', 
@@ -40,6 +38,7 @@ const AdminEMR: React.FC = () => {
     'Psychiatry'
   ];
   const [providers, setProviders] = useState(['Dr Kim West', 'Dr Lin James', 'Dr Sally Field']);
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
 
   useEffect(() => {
     loadPatients();
@@ -118,9 +117,17 @@ const AdminEMR: React.FC = () => {
     if (!selectedPatient) return;
     
     try {
-      await appointmentAPI.createAppointment(selectedPatient.id, appointmentForm);
+      // Combine date and time into datetime string
+      const datetime = `${appointmentForm.date}T${appointmentForm.time}:00`;
+      const appointmentData = {
+        ...appointmentForm,
+        datetime
+      };
+      
+      await appointmentAPI.createAppointment(selectedPatient.id, appointmentData);
       setShowModal(false);
-      setAppointmentForm({ provider: '', datetime: '', repeat: 'none' });
+      setAppointmentForm({ provider: '', date: '', time: '', repeat: 'none' });
+      setAvailableSlots([]);
       loadPatientDetails(selectedPatient.id);
     } catch (error: any) {
       setError(error.response?.data?.message || 'Failed to create appointment');
@@ -132,9 +139,17 @@ const AdminEMR: React.FC = () => {
     if (!selectedPatient || !editingItem) return;
     
     try {
-      await appointmentAPI.updateAppointment(selectedPatient.id, editingItem.id, appointmentForm);
+      // Combine date and time into datetime string
+      const datetime = `${appointmentForm.date}T${appointmentForm.time}:00`;
+      const appointmentData = {
+        ...appointmentForm,
+        datetime
+      };
+      
+      await appointmentAPI.updateAppointment(selectedPatient.id, editingItem.id, appointmentData);
       setShowModal(false);
-      setAppointmentForm({ provider: '', datetime: '', repeat: 'none' });
+      setAppointmentForm({ provider: '', date: '', time: '', repeat: 'none' });
+      setAvailableSlots([]);
       setEditingItem(null);
       loadPatientDetails(selectedPatient.id);
     } catch (error: any) {
@@ -223,13 +238,18 @@ const AdminEMR: React.FC = () => {
       }
     } else if (type === 'appointment') {
       if (item) {
+        const appointmentDate = new Date(item.datetime);
         setAppointmentForm({
           provider: item.provider,
-          datetime: new Date(item.datetime).toISOString().slice(0, 16),
+          date: appointmentDate.toISOString().split('T')[0],
+          time: appointmentDate.toTimeString().slice(0, 5),
           repeat: item.repeat
         });
+        // Load available slots for editing
+        loadAvailableSlots(item.provider, appointmentDate.toISOString().split('T')[0]);
       } else {
-        setAppointmentForm({ provider: '', datetime: '', repeat: 'none' });
+        setAppointmentForm({ provider: '', date: '', time: '', repeat: 'none' });
+        setAvailableSlots([]);
       }
     } else if (type === 'prescription') {
       if (item) {
@@ -256,6 +276,41 @@ const AdminEMR: React.FC = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const formatTimeSlot = (slot: string) => {
+    const date = new Date(slot);
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  const loadAvailableSlots = async (provider: string, date: string) => {
+    try {
+      console.log(`Loading availability for ${provider} on ${date}`);
+      const availability = await appointmentAPI.getProviderAvailability(provider, date);
+      console.log('Availability response:', availability);
+      console.log('Available slots count:', availability.availableSlots?.length || 0);
+      setAvailableSlots(availability.availableSlots || []);
+    } catch (error) {
+      console.error('Error loading availability:', error);
+      console.error('Error details:', error);
+      setAvailableSlots([]);
+    }
+  };
+
+  const handleAppointmentFormChange = async (field: string, value: string) => {
+    const updatedForm = { ...appointmentForm, [field]: value };
+    setAppointmentForm(updatedForm);
+    
+    // Load available slots when provider or date changes
+    if (field === 'provider' && value && updatedForm.date) {
+      await loadAvailableSlots(value, updatedForm.date);
+    } else if (field === 'date' && value && updatedForm.provider) {
+      await loadAvailableSlots(updatedForm.provider, value);
+    }
   };
 
   const renderModal = () => {
@@ -322,7 +377,7 @@ const AdminEMR: React.FC = () => {
                   <label>Provider:</label>
                   <select
                     value={appointmentForm.provider}
-                    onChange={(e) => setAppointmentForm({ ...appointmentForm, provider: e.target.value })}
+                    onChange={(e) => handleAppointmentFormChange('provider', e.target.value)}
                     required
                   >
                     <option value="">Select provider</option>
@@ -332,14 +387,38 @@ const AdminEMR: React.FC = () => {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Date & Time:</label>
+                  <label>Date:</label>
                   <input
-                    type="datetime-local"
-                    value={appointmentForm.datetime}
-                    onChange={(e) => setAppointmentForm({ ...appointmentForm, datetime: e.target.value })}
+                    type="date"
+                    value={appointmentForm.date}
+                    onChange={(e) => handleAppointmentFormChange('date', e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
                     required
                   />
                 </div>
+                {appointmentForm.provider && appointmentForm.date && (
+                  <div className="form-group">
+                    <label>Available Time Slots:</label>
+                    {availableSlots.length > 0 ? (
+                      <select
+                        value={appointmentForm.time}
+                        onChange={(e) => setAppointmentForm(prev => ({ ...prev, time: e.target.value }))}
+                        required
+                      >
+                        <option value="">Select a time slot</option>
+                        {availableSlots.map(slot => (
+                          <option key={slot} value={new Date(slot).toTimeString().slice(0, 5)}>
+                            {formatTimeSlot(slot)}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="alert alert-error">
+                        No available slots for {appointmentForm.provider} on {new Date(appointmentForm.date).toLocaleDateString()}.
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="form-group">
                   <label>Repeat Schedule:</label>
                   <select

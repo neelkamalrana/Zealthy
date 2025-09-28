@@ -173,7 +173,8 @@ export const appointmentAPI = {
     date: string;
     availableSlots: string[];
   }> => {
-    const response = await api.get(`/appointments/availability/${provider}?date=${date}`);
+    const encodedProvider = encodeURIComponent(provider);
+    const response = await api.get(`/appointments/availability/${encodedProvider}?date=${date}`);
     return response.data;
   },
 };
