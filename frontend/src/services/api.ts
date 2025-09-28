@@ -104,13 +104,10 @@ export const patientAPI = {
       const aptDate = new Date(apt.datetime);
       const now = new Date();
       return aptDate >= now && apt.isActive;
-    }).slice(0, 3) || [];
+    }) || [];
     
     const upcomingRefills = user.prescriptions?.filter((pres: any) => {
-      const endDate = new Date(pres.endDate);
-      const now = new Date();
-      const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-      return endDate <= sevenDaysFromNow && pres.isActive;
+      return pres.isActive;
     }) || [];
     
     return {

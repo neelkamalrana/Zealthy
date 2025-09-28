@@ -39,6 +39,7 @@ const AdminEMR: React.FC = () => {
   ];
   const [providers, setProviders] = useState(['Dr Kim West', 'Dr Lin James', 'Dr Sally Field']);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     loadPatients();
@@ -286,6 +287,15 @@ const AdminEMR: React.FC = () => {
       hour12: true
     });
   };
+
+  // Filter patients based on search term
+  const filteredPatients = patients.filter(patient => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      patient.name.toLowerCase().includes(searchLower) ||
+      patient.email.toLowerCase().includes(searchLower)
+    );
+  });
 
   const loadAvailableSlots = async (provider: string, date: string) => {
     try {
@@ -581,10 +591,62 @@ const AdminEMR: React.FC = () => {
               {loading ? 'Refreshing...' : '🔄 Refresh'}
             </button>
           </div>
+          
+          {/* Search Input */}
+          <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+            <label htmlFor="patientSearch">Search Patients:</label>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <input
+                id="patientSearch"
+                type="text"
+                placeholder="Search by name or email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ 
+                  flex: 1,
+                  padding: '12px 16px',
+                  border: '2px solid #e2e8f0',
+                  borderRadius: '12px',
+                  fontSize: '14px',
+                  transition: 'all 0.3s ease',
+                  background: 'linear-gradient(135deg, #ffffff 0%, #fefefe 100%)',
+                  color: '#2c3e50'
+                }}
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  className="btn btn-secondary"
+                  style={{ 
+                    fontSize: '0.9rem', 
+                    padding: '0.5rem 1rem',
+                    minWidth: 'auto'
+                  }}
+                  title="Clear search"
+                >
+                  ✕ Clear
+                </button>
+              )}
+            </div>
+          </div>
           {loading ? (
             <p>Loading patients...</p>
+          ) : filteredPatients.length === 0 && searchTerm ? (
+            <div className="alert alert-error">
+              No patients found matching "{searchTerm}". Try a different search term.
+            </div>
+          ) : filteredPatients.length === 0 ? (
+            <p>No patients found.</p>
           ) : (
-            <table className="table">
+            <>
+              {searchTerm && (
+                <div style={{ marginBottom: '1rem', fontSize: '14px', color: '#6c757d' }}>
+                  Showing {filteredPatients.length} of {patients.length} patients
+                  {searchTerm && ` matching "${searchTerm}"`}
+                </div>
+              )}
+              <table className="table">
               <thead>
                 <tr>
                   <th>Name</th>
@@ -596,7 +658,7 @@ const AdminEMR: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {patients.map((patient) => (
+                {filteredPatients.map((patient) => (
                   <tr key={patient.id}>
                     <td>{patient.name}</td>
                     <td>{patient.email}</td>
@@ -627,6 +689,7 @@ const AdminEMR: React.FC = () => {
                 ))}
               </tbody>
             </table>
+            </>
           )}
         </div>
 

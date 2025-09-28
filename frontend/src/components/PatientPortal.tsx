@@ -203,16 +203,6 @@ const PatientPortal: React.FC = () => {
           <div className="zealthy-logo">
             <div className="zealthy-logo-text">ZEALTHY</div>
           </div>
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '20px' }}>
-            <div>
-              <a href="#services">Services</a>
-              <a href="#weight-loss">Weight Loss Program</a>
-              <a href="#about">About</a>
-              <a href="#careers">Careers</a>
-              <a href="#login">Log In</a>
-            </div>
-            <button className="btn btn-success">Sign Up</button>
-          </div>
         </div>
 
         {/* Section THREE - Scrollable Content */}
@@ -321,7 +311,7 @@ const PatientPortal: React.FC = () => {
             </div>
 
             <div className="dashboard-card">
-              <h3>Upcoming Appointments (Next 7 Days)</h3>
+              <h3>Upcoming Appointments</h3>
               {dashboard.upcomingAppointments.length > 0 ? (
                 <ul>
                   {dashboard.upcomingAppointments.map((apt) => (
@@ -337,7 +327,7 @@ const PatientPortal: React.FC = () => {
             </div>
 
             <div className="dashboard-card">
-              <h3>Upcoming Refills (Next 7 Days)</h3>
+              <h3>Upcoming Refills</h3>
               {dashboard.upcomingRefills.length > 0 ? (
                 <ul>
                   {dashboard.upcomingRefills.map((pres) => (
