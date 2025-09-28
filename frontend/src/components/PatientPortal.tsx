@@ -173,10 +173,33 @@ const PatientPortal: React.FC = () => {
 
   if (!isLoggedIn) {
     return (
-      <div className="container">
-        <div className="nav">
-          <h1>Zealthy Patient Portal</h1>
+      <div>
+        {/* Section ONE - Marketing Banner */}
+        <div className="marketing-banner">
+          Limited Time: $96 off <a href="#">Zealthy Weight Loss Program</a>
         </div>
+        
+        {/* Section TWO - Fixed Navigation */}
+        <div className="fixed-nav">
+          <div className="zealthy-logo">
+            <div className="zealthy-logo-text">ZEALTHY</div>
+          </div>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <div>
+              <a href="#services">Services</a>
+              <a href="#weight-loss">Weight Loss Program</a>
+              <a href="#about">About</a>
+              <a href="#careers">Careers</a>
+              <a href="#login">Log In</a>
+            </div>
+            <button className="btn btn-success">Sign Up</button>
+          </div>
+        </div>
+
+        {/* Section THREE - Scrollable Content */}
+        <div className="scrollable-content">
+          <div className="container">
+            <h1>Patient Portal</h1>
         <div className="login-form">
           <h2>Patient Portal Login</h2>
           <form onSubmit={handleLogin}>
@@ -209,15 +232,27 @@ const PatientPortal: React.FC = () => {
             Password: Password123!
           </p>
         </div>
+          </div>
+        </div>
       </div>
     );
   }
 
-  return (
-    <div className="container">
-      <div className="nav">
-        <h1>Zealthy Patient Portal</h1>
-        <div>
+    return (
+      <div>
+        {/* Section ONE - Marketing Banner */}
+        <div className="marketing-banner">
+          Limited Time: $96 off <a href="#">Zealthy Weight Loss Program</a>
+        </div>
+        
+        {/* Section TWO - Fixed Navigation */}
+        <div className="fixed-nav">
+          <div className="zealthy-logo">
+            <div className="zealthy-logo-text">ZEALTHY</div>
+          </div>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <h1>Patient Portal</h1>
+            <div>
           <button 
             className={`btn ${currentView === 'dashboard' ? 'active' : 'btn-secondary'}`}
             onClick={() => handleViewChange('dashboard')}
@@ -237,7 +272,7 @@ const PatientPortal: React.FC = () => {
             Prescriptions
           </button>
           <button 
-            className="btn btn-success"
+            className="btn btn-book-appointment"
             onClick={() => setShowBookingModal(true)}
           >
             Book Appointment
@@ -245,8 +280,13 @@ const PatientPortal: React.FC = () => {
           <button className="btn btn-secondary" onClick={handleLogout}>
             Logout
           </button>
+            </div>
+          </div>
         </div>
-      </div>
+
+        {/* Section THREE - Scrollable Content */}
+        <div className="scrollable-content">
+          <div className="container">
 
       {currentView === 'dashboard' && dashboard && (
         <div>
@@ -441,8 +481,10 @@ const PatientPortal: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
-  );
-};
+          </div>
+        </div>
+      </div>
+    );
+  };
 
 export default PatientPortal;

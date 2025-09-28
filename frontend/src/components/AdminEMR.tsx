@@ -449,18 +449,33 @@ const AdminEMR: React.FC = () => {
 
   if (currentView === 'patients') {
     return (
-      <div className="container">
-        <div className="nav">
-          <h1>Zealthy Mini EMR</h1>
-          <div>
-            <button className="btn btn-patient" onClick={() => openModal('patient')} style={{ marginRight: '10px' }}>
+      <div>
+        {/* Section ONE - Marketing Banner */}
+        <div className="marketing-banner">
+          Limited Time: $96 off <a href="#">Zealthy Weight Loss Program</a>
+        </div>
+        
+        {/* Section TWO - Fixed Navigation */}
+        <div className="fixed-nav">
+          <div className="zealthy-logo">
+            <div className="zealthy-logo-text">ZEALTHY</div>
+          </div>
+          <div className="admin-nav-right">
+            <h1>Mini EMR</h1>
+            <div>
+            <button className="btn btn-danger" onClick={() => openModal('patient')} style={{ marginRight: '10px' }}>
               Add New Patient
             </button>
-            <button className="btn btn-provider" onClick={() => openModal('provider')}>
+            <button className="btn btn-danger" onClick={() => openModal('provider')}>
               Add New Provider
             </button>
+            </div>
           </div>
         </div>
+
+        {/* Section THREE - Scrollable Content */}
+        <div className="scrollable-content">
+          <div className="container">
 
         {error && <div className="alert alert-error">{error}</div>}
 
@@ -516,21 +531,38 @@ const AdminEMR: React.FC = () => {
         </div>
 
         {renderModal()}
+          </div>
+        </div>
       </div>
     );
   }
 
   if (currentView === 'patient-details' && selectedPatient) {
     return (
-      <div className="container">
-        <div className="nav">
-          <h1>Zealthy Mini EMR - Patient Details - {selectedPatient.name}</h1>
-          <div>
+      <div>
+        {/* Section ONE - Marketing Banner */}
+        <div className="marketing-banner">
+          Limited Time: $96 off <a href="#">Zealthy Weight Loss Program</a>
+        </div>
+        
+        {/* Section TWO - Fixed Navigation */}
+        <div className="fixed-nav">
+          <div className="zealthy-logo">
+            <div className="zealthy-logo-text">ZEALTHY</div>
+          </div>
+          <div className="admin-nav-right">
+            <h1>Mini EMR - Patient Details - {selectedPatient.name}</h1>
+            <div>
             <button className="btn btn-secondary" onClick={() => setCurrentView('patients')}>
               Back to Patients
             </button>
+            </div>
           </div>
         </div>
+
+        {/* Section THREE - Scrollable Content */}
+        <div className="scrollable-content">
+          <div className="container">
 
         {error && <div className="alert alert-error">{error}</div>}
 
@@ -630,6 +662,8 @@ const AdminEMR: React.FC = () => {
         </div>
 
         {renderModal()}
+          </div>
+        </div>
       </div>
     );
   }
