@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { patientAPI, appointmentAPI, prescriptionAPI, User, Appointment, Prescription } from '../services/api';
 
 const AdminEMR: React.FC = () => {
+  const navigate = useNavigate();
   const [patients, setPatients] = useState<User[]>([]);
   const [selectedPatient, setSelectedPatient] = useState<User | null>(null);
   const [currentView, setCurrentView] = useState<'patients' | 'patient-details'>('patients');
@@ -452,7 +454,9 @@ const AdminEMR: React.FC = () => {
       <div>
         {/* Section ONE - Marketing Banner */}
         <div className="marketing-banner">
-          Limited Time: $96 off <a href="#">Zealthy Weight Loss Program</a>
+          <a href="/black-friday" style={{ color: 'inherit', textDecoration: 'inherit' }}>
+            Limited Time: $96 off Zealthy Weight Loss Program
+          </a>
         </div>
         
         {/* Section TWO - Fixed Navigation */}
@@ -542,7 +546,9 @@ const AdminEMR: React.FC = () => {
       <div>
         {/* Section ONE - Marketing Banner */}
         <div className="marketing-banner">
-          Limited Time: $96 off <a href="#">Zealthy Weight Loss Program</a>
+          <a href="/black-friday" style={{ color: 'inherit', textDecoration: 'inherit' }}>
+            Limited Time: $96 off Zealthy Weight Loss Program
+          </a>
         </div>
         
         {/* Section TWO - Fixed Navigation */}

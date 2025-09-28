@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { authAPI, patientAPI, appointmentAPI, prescriptionAPI, User, PatientDashboard, Appointment, Prescription } from '../services/api';
 
 const PatientPortal: React.FC = () => {
+  const navigate = useNavigate();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [dashboard, setDashboard] = useState<PatientDashboard | null>(null);
@@ -176,7 +178,9 @@ const PatientPortal: React.FC = () => {
       <div>
         {/* Section ONE - Marketing Banner */}
         <div className="marketing-banner">
-          Limited Time: $96 off <a href="#">Zealthy Weight Loss Program</a>
+          <a href="/black-friday" style={{ color: 'inherit', textDecoration: 'inherit' }}>
+            Limited Time: $96 off Zealthy Weight Loss Program
+          </a>
         </div>
         
         {/* Section TWO - Fixed Navigation */}
@@ -242,7 +246,9 @@ const PatientPortal: React.FC = () => {
       <div>
         {/* Section ONE - Marketing Banner */}
         <div className="marketing-banner">
-          Limited Time: $96 off <a href="#">Zealthy Weight Loss Program</a>
+          <a href="/black-friday" style={{ color: 'inherit', textDecoration: 'inherit' }}>
+            Limited Time: $96 off Zealthy Weight Loss Program
+          </a>
         </div>
         
         {/* Section TWO - Fixed Navigation */}
