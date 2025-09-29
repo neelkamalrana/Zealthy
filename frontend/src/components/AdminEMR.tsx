@@ -467,23 +467,39 @@ const AdminEMR: React.FC = () => {
 
   if (currentView === 'patients') {
     return (
-      <div className="container">
-        <div className="nav">
-          <h1>Zealthy Mini EMR</h1>
-          <div>
-            <button className="btn btn-patient" onClick={() => openModal('patient')} style={{ marginRight: '10px' }}>
-              Add New Patient
-            </button>
-            <button className="btn btn-provider" onClick={() => openModal('provider')}>
-              Add New Provider
-            </button>
+      <div>
+        {/* Section ONE - Marketing Banner */}
+        <div className="marketing-banner">
+          <a href="/black-friday" style={{ color: 'inherit', textDecoration: 'inherit' }}>
+            Limited Time: $96 off Zealthy Weight Loss Program
+          </a>
+        </div>
+        
+        {/* Section TWO - Fixed Navigation */}
+        <div className="fixed-nav">
+          <div className="zealthy-logo">
+            <div className="zealthy-logo-text">ZEALTHY</div>
+          </div>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <h1>Zealthy Mini EMR</h1>
+            <div>
+              <button className="btn btn-patient" onClick={() => openModal('patient')} style={{ marginRight: '10px' }}>
+                Add New Patient
+              </button>
+              <button className="btn btn-patient" onClick={() => openModal('provider')}>
+                Add New Provider
+              </button>
+            </div>
           </div>
         </div>
 
-        {error && <div className="alert alert-error">{error}</div>}
+        {/* Section THREE - Scrollable Content */}
+        <div className="scrollable-content">
+          <div className="container">
+            {error && <div className="alert alert-error">{error}</div>}
 
-        <div className="card">
-          <h2>Patient List</h2>
+            <div className="card">
+              <h2>Patient List</h2>
           
           {/* Search Input */}
           <div style={{ marginBottom: '20px' }}>
@@ -551,24 +567,42 @@ const AdminEMR: React.FC = () => {
               </tbody>
             </table>
           )}
-        </div>
+            </div>
 
-        {renderModal()}
+            {renderModal()}
+          </div>
+        </div>
       </div>
     );
   }
 
   if (currentView === 'patient-details' && selectedPatient) {
     return (
-      <div className="container">
-        <div className="nav">
-          <h1>Zealthy Mini EMR - Patient Details - {selectedPatient.name}</h1>
-          <button className="btn btn-secondary" onClick={() => setCurrentView('patients')}>
-            Back to Patients
-          </button>
+      <div>
+        {/* Section ONE - Marketing Banner */}
+        <div className="marketing-banner">
+          <a href="/black-friday" style={{ color: 'inherit', textDecoration: 'inherit' }}>
+            Limited Time: $96 off Zealthy Weight Loss Program
+          </a>
+        </div>
+        
+        {/* Section TWO - Fixed Navigation */}
+        <div className="fixed-nav">
+          <div className="zealthy-logo">
+            <div className="zealthy-logo-text">ZEALTHY</div>
+          </div>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <h1>Zealthy Mini EMR - Patient Details - {selectedPatient.name}</h1>
+            <button className="btn btn-secondary" onClick={() => setCurrentView('patients')}>
+              Back to Patients
+            </button>
+          </div>
         </div>
 
-        {error && <div className="alert alert-error">{error}</div>}
+        {/* Section THREE - Scrollable Content */}
+        <div className="scrollable-content">
+          <div className="container">
+            {error && <div className="alert alert-error">{error}</div>}
 
         <div className="card">
           <h2>Patient Information</h2>
@@ -665,7 +699,9 @@ const AdminEMR: React.FC = () => {
           </table>
         </div>
 
-        {renderModal()}
+            {renderModal()}
+          </div>
+        </div>
       </div>
     );
   }
