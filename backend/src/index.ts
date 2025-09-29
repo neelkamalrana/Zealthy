@@ -10,20 +10,9 @@ import { UserService, ProviderService, MedicationService, User, Appointment, Pre
 // Load environment variables
 dotenv.config();
 
-// Debug environment variables
-console.log('🔍 Environment Variables Debug:');
-console.log('NODE_ENV:', process.env.NODE_ENV);
-console.log('PORT:', process.env.PORT);
-console.log('JWT_SECRET:', process.env.JWT_SECRET ? 'SET' : 'NOT SET');
-console.log('AWS_REGION:', process.env.AWS_REGION);
-console.log('AWS_ACCESS_KEY_ID:', process.env.AWS_ACCESS_KEY_ID ? 'SET' : 'NOT SET');
-console.log('AWS_SECRET_ACCESS_KEY:', process.env.AWS_SECRET_ACCESS_KEY ? 'SET' : 'NOT SET');
-
 const app = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-
-console.log('🚀 Starting server on port:', PORT);
 
 app.use(cors({
   origin: ['https://zealthy-psi-seven.vercel.app', 'http://54.236.217.39', 'http://localhost:3000'],
@@ -35,17 +24,10 @@ app.use(express.json());
 async function initializeDatabase() {
   try {
     console.log('🔧 Initializing DynamoDB tables...');
-    console.log('🔍 AWS Credentials check:');
-    console.log('AWS_REGION:', process.env.AWS_REGION);
-    console.log('AWS_ACCESS_KEY_ID:', process.env.AWS_ACCESS_KEY_ID ? 'SET' : 'NOT SET');
-    console.log('AWS_SECRET_ACCESS_KEY:', process.env.AWS_SECRET_ACCESS_KEY ? 'SET' : 'NOT SET');
-    
     await createTables();
-    
     console.log('✅ Database initialization completed!');
   } catch (error) {
     console.error('❌ Database initialization failed:', error);
-    console.error('❌ Error details:', JSON.stringify(error, null, 2));
   }
 }
 
@@ -561,10 +543,8 @@ app.get('/api/appointments/availability/:provider', async (req, res) => {
 // Initialize database and start server
 async function startServer() {
   try {
-    console.log('🚀 Starting server initialization...');
     await initializeDatabase();
     
-    console.log('🌐 Starting HTTP server...');
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`✅ Server is running on port ${PORT}`);
       console.log(`🌐 API available at: http://localhost:${PORT}/api`);
@@ -572,11 +552,9 @@ async function startServer() {
       console.log(`🎉 DynamoDB mode - Data will persist between server restarts!`);
       console.log(`   Email: mark@some-email-provider.net`);
       console.log(`   Password: Password123!`);
-      console.log(`🔍 Server listening on 0.0.0.0:${PORT}`);
     });
   } catch (error) {
     console.error('❌ Server startup failed:', error);
-    console.error('❌ Error details:', JSON.stringify(error, null, 2));
     process.exit(1);
   }
 }
