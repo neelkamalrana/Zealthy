@@ -674,7 +674,7 @@ body {
   }
 }
 
-/* Responsive Table Design */
+/* Responsive Table Design - Updated for deployment */
 @media (max-width: 768px) {
   .table {
     font-size: 12px;
