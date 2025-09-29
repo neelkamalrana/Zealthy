@@ -480,10 +480,10 @@ const AdminEMR: React.FC = () => {
           <div className="zealthy-logo">
             <div className="zealthy-logo-text">ZEALTHY</div>
           </div>
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <div className="nav-content">
             <h1>Zealthy Mini EMR</h1>
-            <div>
-              <button className="btn btn-patient" onClick={() => openModal('patient')} style={{ marginRight: '10px' }}>
+            <div className="nav-buttons">
+              <button className="btn btn-patient" onClick={() => openModal('patient')}>
                 Add New Patient
               </button>
               <button className="btn btn-patient" onClick={() => openModal('provider')}>
@@ -591,11 +591,13 @@ const AdminEMR: React.FC = () => {
           <div className="zealthy-logo">
             <div className="zealthy-logo-text">ZEALTHY</div>
           </div>
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <div className="nav-content">
             <h1>Zealthy Mini EMR - Patient Details - {selectedPatient.name}</h1>
-            <button className="btn btn-secondary" onClick={() => setCurrentView('patients')}>
-              Back to Patients
-            </button>
+            <div className="nav-buttons">
+              <button className="btn btn-secondary" onClick={() => setCurrentView('patients')}>
+                Back to Patients
+              </button>
+            </div>
           </div>
         </div>
 

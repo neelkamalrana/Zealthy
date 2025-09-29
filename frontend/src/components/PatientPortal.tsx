@@ -271,36 +271,36 @@ const PatientPortal: React.FC = () => {
           <div className="zealthy-logo">
             <div className="zealthy-logo-text">ZEALTHY</div>
           </div>
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <div className="nav-content">
             <h1>Patient Portal</h1>
-            <div>
-          <button 
-            className={`btn ${currentView === 'dashboard' ? 'active' : 'btn-secondary'}`}
-            onClick={() => handleViewChange('dashboard')}
-          >
-            Dashboard
-          </button>
-          <button 
-            className={`btn ${currentView === 'appointments' ? 'active' : 'btn-secondary'}`}
-            onClick={() => handleViewChange('appointments')}
-          >
-            Appointments
-          </button>
-          <button 
-            className={`btn ${currentView === 'prescriptions' ? 'active' : 'btn-secondary'}`}
-            onClick={() => handleViewChange('prescriptions')}
-          >
-            Prescriptions
-          </button>
-          <button 
-            className="btn btn-book-appointment"
-            onClick={() => setShowBookingModal(true)}
-          >
-            Book Appointment
-          </button>
-          <button className="btn btn-secondary" onClick={handleLogout}>
-            Logout
-          </button>
+            <div className="nav-buttons">
+              <button 
+                className={`btn ${currentView === 'dashboard' ? 'active' : 'btn-secondary'}`}
+                onClick={() => handleViewChange('dashboard')}
+              >
+                Dashboard
+              </button>
+              <button 
+                className={`btn ${currentView === 'appointments' ? 'active' : 'btn-secondary'}`}
+                onClick={() => handleViewChange('appointments')}
+              >
+                Appointments
+              </button>
+              <button 
+                className={`btn ${currentView === 'prescriptions' ? 'active' : 'btn-secondary'}`}
+                onClick={() => handleViewChange('prescriptions')}
+              >
+                Prescriptions
+              </button>
+              <button 
+                className="btn btn-book-appointment"
+                onClick={() => setShowBookingModal(true)}
+              >
+                Book Appointment
+              </button>
+              <button className="btn btn-secondary" onClick={handleLogout}>
+                Logout
+              </button>
             </div>
           </div>
         </div>
