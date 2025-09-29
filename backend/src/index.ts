@@ -15,7 +15,7 @@ const PORT = process.env.PORT || 5001;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 app.use(cors({
-  origin: ['http://54.236.217.39', 'http://localhost:3000'],
+  origin: ['https://zealthy-psi-seven.vercel.app', 'http://54.236.217.39', 'http://localhost:3000'],
   credentials: true
 }));
 app.use(express.json());
