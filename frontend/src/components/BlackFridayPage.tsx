@@ -96,3 +96,4 @@ const BlackFridayPage: React.FC = () => {
 };
 
 export default BlackFridayPage;
+

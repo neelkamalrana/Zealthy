@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { patientAPI, appointmentAPI, prescriptionAPI, User } from '../services/api';
+import { patientAPI, appointmentAPI, prescriptionAPI, User, Appointment, Prescription } from '../services/api';
 
 const AdminEMR: React.FC = () => {
   const [patients, setPatients] = useState<User[]>([]);
@@ -13,7 +13,7 @@ const AdminEMR: React.FC = () => {
 
   // Form states
   const [patientForm, setPatientForm] = useState({ name: '', email: '', password: '' });
-  const [appointmentForm, setAppointmentForm] = useState({ provider: '', date: '', time: '', repeat: 'none' as 'weekly' | 'monthly' | 'none' });
+  const [appointmentForm, setAppointmentForm] = useState({ provider: '', datetime: '', repeat: 'none' as 'weekly' | 'monthly' | 'none' });
   const [prescriptionForm, setPrescriptionForm] = useState({ 
     medication: '', 
     dosage: '', 
@@ -38,18 +38,9 @@ const AdminEMR: React.FC = () => {
     'Psychiatry'
   ];
   const [providers, setProviders] = useState(['Dr Kim West', 'Dr Lin James', 'Dr Sally Field']);
-  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     loadPatients();
-    
-    // Auto-refresh patient list every 30 seconds to catch updates from patient portal
-    const interval = setInterval(() => {
-      loadPatients();
-    }, 30000);
-    
-    return () => clearInterval(interval);
   }, []);
 
   const loadPatients = async () => {
@@ -118,17 +109,9 @@ const AdminEMR: React.FC = () => {
     if (!selectedPatient) return;
     
     try {
-      // Combine date and time into datetime string
-      const datetime = `${appointmentForm.date}T${appointmentForm.time}:00`;
-      const appointmentData = {
-        ...appointmentForm,
-        datetime
-      };
-      
-      await appointmentAPI.createAppointment(selectedPatient.id, appointmentData);
+      await appointmentAPI.createAppointment(selectedPatient.id, appointmentForm);
       setShowModal(false);
-      setAppointmentForm({ provider: '', date: '', time: '', repeat: 'none' });
-      setAvailableSlots([]);
+      setAppointmentForm({ provider: '', datetime: '', repeat: 'none' });
       loadPatientDetails(selectedPatient.id);
     } catch (error: any) {
       setError(error.response?.data?.message || 'Failed to create appointment');
@@ -140,17 +123,9 @@ const AdminEMR: React.FC = () => {
     if (!selectedPatient || !editingItem) return;
     
     try {
-      // Combine date and time into datetime string
-      const datetime = `${appointmentForm.date}T${appointmentForm.time}:00`;
-      const appointmentData = {
-        ...appointmentForm,
-        datetime
-      };
-      
-      await appointmentAPI.updateAppointment(selectedPatient.id, editingItem.id, appointmentData);
+      await appointmentAPI.updateAppointment(selectedPatient.id, editingItem.id, appointmentForm);
       setShowModal(false);
-      setAppointmentForm({ provider: '', date: '', time: '', repeat: 'none' });
-      setAvailableSlots([]);
+      setAppointmentForm({ provider: '', datetime: '', repeat: 'none' });
       setEditingItem(null);
       loadPatientDetails(selectedPatient.id);
     } catch (error: any) {
@@ -239,18 +214,13 @@ const AdminEMR: React.FC = () => {
       }
     } else if (type === 'appointment') {
       if (item) {
-        const appointmentDate = new Date(item.datetime);
         setAppointmentForm({
           provider: item.provider,
-          date: appointmentDate.toISOString().split('T')[0],
-          time: appointmentDate.toTimeString().slice(0, 5),
+          datetime: new Date(item.datetime).toISOString().slice(0, 16),
           repeat: item.repeat
         });
-        // Load available slots for editing
-        loadAvailableSlots(item.provider, appointmentDate.toISOString().split('T')[0]);
       } else {
-        setAppointmentForm({ provider: '', date: '', time: '', repeat: 'none' });
-        setAvailableSlots([]);
+        setAppointmentForm({ provider: '', datetime: '', repeat: 'none' });
       }
     } else if (type === 'prescription') {
       if (item) {
@@ -277,50 +247,6 @@ const AdminEMR: React.FC = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
-  };
-
-  const formatTimeSlot = (slot: string) => {
-    const date = new Date(slot);
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    });
-  };
-
-  // Filter patients based on search term
-  const filteredPatients = patients.filter(patient => {
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      patient.name.toLowerCase().includes(searchLower) ||
-      patient.email.toLowerCase().includes(searchLower)
-    );
-  });
-
-  const loadAvailableSlots = async (provider: string, date: string) => {
-    try {
-      console.log(`Loading availability for ${provider} on ${date}`);
-      const availability = await appointmentAPI.getProviderAvailability(provider, date);
-      console.log('Availability response:', availability);
-      console.log('Available slots count:', availability.availableSlots?.length || 0);
-      setAvailableSlots(availability.availableSlots || []);
-    } catch (error) {
-      console.error('Error loading availability:', error);
-      console.error('Error details:', error);
-      setAvailableSlots([]);
-    }
-  };
-
-  const handleAppointmentFormChange = async (field: string, value: string) => {
-    const updatedForm = { ...appointmentForm, [field]: value };
-    setAppointmentForm(updatedForm);
-    
-    // Load available slots when provider or date changes
-    if (field === 'provider' && value && updatedForm.date) {
-      await loadAvailableSlots(value, updatedForm.date);
-    } else if (field === 'date' && value && updatedForm.provider) {
-      await loadAvailableSlots(updatedForm.provider, value);
-    }
   };
 
   const renderModal = () => {
@@ -387,7 +313,7 @@ const AdminEMR: React.FC = () => {
                   <label>Provider:</label>
                   <select
                     value={appointmentForm.provider}
-                    onChange={(e) => handleAppointmentFormChange('provider', e.target.value)}
+                    onChange={(e) => setAppointmentForm({ ...appointmentForm, provider: e.target.value })}
                     required
                   >
                     <option value="">Select provider</option>
@@ -397,38 +323,14 @@ const AdminEMR: React.FC = () => {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Date:</label>
+                  <label>Date & Time:</label>
                   <input
-                    type="date"
-                    value={appointmentForm.date}
-                    onChange={(e) => handleAppointmentFormChange('date', e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
+                    type="datetime-local"
+                    value={appointmentForm.datetime}
+                    onChange={(e) => setAppointmentForm({ ...appointmentForm, datetime: e.target.value })}
                     required
                   />
                 </div>
-                {appointmentForm.provider && appointmentForm.date && (
-                  <div className="form-group">
-                    <label>Available Time Slots:</label>
-                    {availableSlots.length > 0 ? (
-                      <select
-                        value={appointmentForm.time}
-                        onChange={(e) => setAppointmentForm(prev => ({ ...prev, time: e.target.value }))}
-                        required
-                      >
-                        <option value="">Select a time slot</option>
-                        {availableSlots.map(slot => (
-                          <option key={slot} value={new Date(slot).toTimeString().slice(0, 5)}>
-                            {formatTimeSlot(slot)}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <div className="alert alert-error">
-                        No available slots for {appointmentForm.provider} on {new Date(appointmentForm.date).toLocaleDateString()}.
-                      </div>
-                    )}
-                  </div>
-                )}
                 <div className="form-group">
                   <label>Repeat Schedule:</label>
                   <select
@@ -547,106 +449,27 @@ const AdminEMR: React.FC = () => {
 
   if (currentView === 'patients') {
     return (
-      <div>
-        {/* Section ONE - Marketing Banner */}
-        <div className="marketing-banner">
-          <a href="/black-friday" style={{ color: 'inherit', textDecoration: 'inherit' }}>
-            Limited Time: $96 off Zealthy Weight Loss Program
-          </a>
-        </div>
-        
-        {/* Section TWO - Fixed Navigation */}
-        <div className="fixed-nav">
-          <div className="zealthy-logo">
-            <div className="zealthy-logo-text">ZEALTHY</div>
-          </div>
-          <div className="admin-nav-right">
-            <h1>Mini EMR</h1>
-            <div>
-            <button className="btn btn-danger" onClick={() => openModal('patient')} style={{ marginRight: '10px' }}>
+      <div className="container">
+        <div className="nav">
+          <h1>Zealthy Mini EMR</h1>
+          <div>
+            <button className="btn btn-patient" onClick={() => openModal('patient')} style={{ marginRight: '10px' }}>
               Add New Patient
             </button>
-            <button className="btn btn-danger" onClick={() => openModal('provider')}>
+            <button className="btn btn-provider" onClick={() => openModal('provider')}>
               Add New Provider
             </button>
-            </div>
           </div>
         </div>
-
-        {/* Section THREE - Scrollable Content */}
-        <div className="scrollable-content">
-          <div className="container">
 
         {error && <div className="alert alert-error">{error}</div>}
 
         <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h2>Patient List</h2>
-            <button 
-              className="btn btn-secondary" 
-              onClick={loadPatients}
-              disabled={loading}
-              style={{ fontSize: '0.9rem', padding: '0.5rem 1rem' }}
-            >
-              {loading ? 'Refreshing...' : '🔄 Refresh'}
-            </button>
-          </div>
-          
-          {/* Search Input */}
-          <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-            <label htmlFor="patientSearch">Search Patients:</label>
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-              <input
-                id="patientSearch"
-                type="text"
-                placeholder="Search by name or email..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ 
-                  flex: 1,
-                  padding: '12px 16px',
-                  border: '2px solid #e2e8f0',
-                  borderRadius: '12px',
-                  fontSize: '14px',
-                  transition: 'all 0.3s ease',
-                  background: 'linear-gradient(135deg, #ffffff 0%, #fefefe 100%)',
-                  color: '#2c3e50'
-                }}
-              />
-              {searchTerm && (
-                <button
-                  type="button"
-                  onClick={() => setSearchTerm('')}
-                  className="btn btn-secondary"
-                  style={{ 
-                    fontSize: '0.9rem', 
-                    padding: '0.5rem 1rem',
-                    minWidth: 'auto'
-                  }}
-                  title="Clear search"
-                >
-                  ✕ Clear
-                </button>
-              )}
-            </div>
-          </div>
+          <h2>Patient List</h2>
           {loading ? (
             <p>Loading patients...</p>
-          ) : filteredPatients.length === 0 && searchTerm ? (
-            <div className="alert alert-error">
-              No patients found matching "{searchTerm}". Try a different search term.
-            </div>
-          ) : filteredPatients.length === 0 ? (
-            <p>No patients found.</p>
           ) : (
-            <>
-              {searchTerm && (
-                <div style={{ marginBottom: '1rem', fontSize: '14px', color: '#6c757d' }}>
-                  Showing {filteredPatients.length} of {patients.length} patients
-                  {searchTerm && ` matching "${searchTerm}"`}
-                </div>
-              )}
-              <table className="table">
+            <table className="table">
               <thead>
                 <tr>
                   <th>Name</th>
@@ -658,7 +481,7 @@ const AdminEMR: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredPatients.map((patient) => (
+                {patients.map((patient) => (
                   <tr key={patient.id}>
                     <td>{patient.name}</td>
                     <td>{patient.email}</td>
@@ -689,45 +512,23 @@ const AdminEMR: React.FC = () => {
                 ))}
               </tbody>
             </table>
-            </>
           )}
         </div>
 
         {renderModal()}
-          </div>
-        </div>
       </div>
     );
   }
 
   if (currentView === 'patient-details' && selectedPatient) {
     return (
-      <div>
-        {/* Section ONE - Marketing Banner */}
-        <div className="marketing-banner">
-          <a href="/black-friday" style={{ color: 'inherit', textDecoration: 'inherit' }}>
-            Limited Time: $96 off Zealthy Weight Loss Program
-          </a>
+      <div className="container">
+        <div className="nav">
+          <h1>Zealthy Mini EMR - Patient Details - {selectedPatient.name}</h1>
+          <button className="btn btn-secondary" onClick={() => setCurrentView('patients')}>
+            Back to Patients
+          </button>
         </div>
-        
-        {/* Section TWO - Fixed Navigation */}
-        <div className="fixed-nav">
-          <div className="zealthy-logo">
-            <div className="zealthy-logo-text">ZEALTHY</div>
-          </div>
-          <div className="admin-nav-right">
-            <h1>Mini EMR - Patient Details - {selectedPatient.name}</h1>
-            <div>
-            <button className="btn btn-secondary" onClick={() => setCurrentView('patients')}>
-              Back to Patients
-            </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Section THREE - Scrollable Content */}
-        <div className="scrollable-content">
-          <div className="container">
 
         {error && <div className="alert alert-error">{error}</div>}
 
@@ -827,8 +628,6 @@ const AdminEMR: React.FC = () => {
         </div>
 
         {renderModal()}
-          </div>
-        </div>
       </div>
     );
   }

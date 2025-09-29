@@ -26,3 +26,4 @@ export const usePageTitle = () => {
     document.title = pageTitle;
   }, [location.pathname]);
 };
+
