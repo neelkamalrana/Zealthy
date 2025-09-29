@@ -236,8 +236,18 @@ const PatientPortal: React.FC = () => {
             <button type="submit" className="btn">Login</button>
           </form>
           <p style={{ marginTop: '20px', fontSize: '14px', color: '#666' }}>
-            Demo credentials:<br />
+            <strong>Demo Credentials:</strong><br />
+            <br />
+            <strong>Patient 1:</strong><br />
             Email: mark@some-email-provider.net<br />
+            Password: Password123!<br />
+            <br />
+            <strong>Patient 2:</strong><br />
+            Email: john@some-email-provider.net<br />
+            Password: Password123!<br />
+            <br />
+            <strong>Patient 3:</strong><br />
+            Email: lisa@some-email-provider.net<br />
             Password: Password123!
           </p>
         </div>
