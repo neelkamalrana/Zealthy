@@ -11,7 +11,7 @@ import { UserService, ProviderService, MedicationService, User, Appointment, Pre
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+const PORT = parseInt(process.env.PORT || '5001', 10);
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 app.use(cors({
