@@ -3,6 +3,8 @@ import { patientAPI, appointmentAPI, prescriptionAPI, User, Appointment, Prescri
 
 const AdminEMR: React.FC = () => {
   const [patients, setPatients] = useState<User[]>([]);
+  const [filteredPatients, setFilteredPatients] = useState<User[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedPatient, setSelectedPatient] = useState<User | null>(null);
   const [currentView, setCurrentView] = useState<'patients' | 'patient-details'>('patients');
   const [showModal, setShowModal] = useState(false);
@@ -43,6 +45,10 @@ const AdminEMR: React.FC = () => {
     loadPatients();
   }, []);
 
+  useEffect(() => {
+    filterPatients();
+  }, [patients, searchTerm]);
+
   const loadPatients = async () => {
     try {
       setLoading(true);
@@ -52,6 +58,18 @@ const AdminEMR: React.FC = () => {
       setError('Failed to load patients');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const filterPatients = () => {
+    if (!searchTerm.trim()) {
+      setFilteredPatients(patients);
+    } else {
+      const filtered = patients.filter(patient =>
+        patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        patient.email.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredPatients(filtered);
     }
   };
 
@@ -466,8 +484,28 @@ const AdminEMR: React.FC = () => {
 
         <div className="card">
           <h2>Patient List</h2>
+          
+          {/* Search Input */}
+          <div style={{ marginBottom: '20px' }}>
+            <input
+              type="text"
+              placeholder="Search patients by name or email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                fontSize: '16px'
+              }}
+            />
+          </div>
+
           {loading ? (
             <p>Loading patients...</p>
+          ) : filteredPatients.length === 0 ? (
+            <p>No patients found matching your search.</p>
           ) : (
             <table className="table">
               <thead>
@@ -481,7 +519,7 @@ const AdminEMR: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {patients.map((patient) => (
+                {filteredPatients.map((patient) => (
                   <tr key={patient.id}>
                     <td>{patient.name}</td>
                     <td>{patient.email}</td>
