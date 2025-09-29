@@ -14,7 +14,10 @@ const app = express();
 const PORT = process.env.PORT || 5001;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
-app.use(cors());
+app.use(cors({
+  origin: ['http://54.236.217.39', 'http://localhost:3000'],
+  credentials: true
+}));
 app.use(express.json());
 
 // Initialize DynamoDB tables
