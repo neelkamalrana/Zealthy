@@ -30,6 +30,7 @@ A modern, cloud-based Electronic Medical Records (EMR) system designed for healt
 - **📱 Responsive Design**: Optimized for desktop and mobile devices
 - **🔒 Data Security**: Secure data storage with AWS DynamoDB
 - **⚡ High Performance**: Fast loading times and smooth user experience
+- **🔐 Redis Caching**: Distributed locking system to prevent double bookings and race conditions
 
 ## 🛠️ Tech Stack
 
@@ -51,6 +52,8 @@ A modern, cloud-based Electronic Medical Records (EMR) system designed for healt
 - **🗄️ AWS DynamoDB** - NoSQL database for scalable data storage
 - **☁️ AWS SDK** - Official AWS SDK for Node.js
 - **🔧 AWS IAM** - Identity and Access Management for secure credentials
+- **🔴 Redis (Upstash)** - Serverless Redis for distributed locking and caching
+- **⚡ ioredis** - High-performance Redis client for Node.js
 
 ### Deployment & Hosting
 - **🚀 Vercel** - Frontend hosting with automatic deployments
@@ -113,6 +116,17 @@ A modern, cloud-based Electronic Medical Records (EMR) system designed for healt
 │ • TypeScript    │    │ • Express.js    │    │ • Scalable      │
 │ • Responsive    │    │ • JWT Auth      │    │ • Secure        │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
+                              │
+                              │
+                              ▼
+                       ┌─────────────────┐
+                       │  Redis Cache    │
+                       │   (Upstash)     │
+                       │                 │
+                       │ • Distributed   │
+                       │   Locking       │
+                       │ • Serverless    │
+                       └─────────────────┘
 ```
 
 ## 📊 Project Structure
@@ -239,6 +253,61 @@ zealthy-emr/
   description?: string;
 }
 ```
+
+## 🔐 Redis Caching & Concurrency Control
+
+### **Problem Solved:**
+Prevents **double booking** race conditions when multiple users attempt to book the same appointment slot simultaneously.
+
+### **Implementation:**
+
+**Distributed Locking System:**
+- When a user attempts to book an appointment, the system acquires a **Redis lock** for that specific time slot
+- Lock key format: `booking:{provider}:{datetime}`
+- Lock expires automatically after **10 seconds** to prevent deadlocks
+- If another user tries to book the same slot while locked, they receive a clear error message
+
+**How It Works:**
+```typescript
+// User A books Dr. Kim West at 2:00 PM
+1. Acquire lock: booking:Dr Kim West:2025-11-20T14:00
+2. Check database for conflicts
+3. Create appointment
+4. Release lock
+5. Success! ✅
+
+// User B tries to book same slot (simultaneously)
+1. Try to acquire same lock
+2. Lock already exists ❌
+3. Return 409 error: "Slot is being booked by another patient"
+4. User can retry after lock expires
+```
+
+### **Technical Details:**
+
+**Technology Stack:**
+- **Upstash Redis**: Serverless Redis for zero-maintenance scaling
+- **ioredis**: High-performance Node.js Redis client
+- **Distributed Locking**: Works across multiple Railway instances
+
+**Features:**
+- ✅ Automatic lock expiration (10 seconds)
+- ✅ Error codes for different scenarios (`SLOT_LOCKED`, `USER_CONFLICT`, `PROVIDER_CONFLICT`)
+- ✅ Health monitoring endpoint checks Redis connection
+- ✅ Comprehensive logging for debugging
+- ✅ Graceful error handling and recovery
+
+**Error Handling:**
+- `SLOT_LOCKED`: Another user is currently booking this slot
+- `USER_CONFLICT`: Patient already has an appointment at this time
+- `PROVIDER_CONFLICT`: Provider is already booked at this time
+
+### **Benefits:**
+- 🚀 **Prevents Race Conditions**: Only one booking can proceed at a time
+- ⚡ **High Performance**: Redis operations are extremely fast (<1ms)
+- 🔄 **Scalable**: Works across multiple server instances
+- 🛡️ **Production-Ready**: Includes monitoring, logging, and error handling
+- 👥 **Better UX**: Clear error messages guide users to retry
 
 ## 🤝 Contributing
 
