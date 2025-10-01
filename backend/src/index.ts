@@ -6,6 +6,8 @@ import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { createTables } from './utils/createTables';
 import { UserService, ProviderService, MedicationService, User, Appointment, Prescription, Provider, Medication } from './models/DynamoDB';
+import { bookingLock } from './services/bookingLock';
+import redis from './config/redis';
 
 // Load environment variables
 dotenv.config();
@@ -50,8 +52,40 @@ const authenticateToken = (req: any, res: any, next: any) => {
 };
 
 // Health check
-app.get('/api/health', (req, res) => {
-  res.json({ message: 'Zealthy EMR API is running' });
+app.get('/api/health', async (req, res) => {
+  const health = {
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    services: {
+      api: 'running',
+      redis: 'unknown',
+      database: 'unknown'
+    }
+  };
+
+  // Check Redis connection
+  try {
+    await redis.ping();
+    health.services.redis = 'connected';
+  } catch (error) {
+    console.error('Redis health check failed:', error);
+    health.services.redis = 'disconnected';
+    health.status = 'degraded';
+  }
+
+  // Check DynamoDB connection (already exists from before)
+  try {
+    // Simple check - try to list tables
+    await UserService.getAll();
+    health.services.database = 'connected';
+  } catch (error) {
+    console.error('Database health check failed:', error);
+    health.services.database = 'disconnected';
+    health.status = 'degraded';
+  }
+
+  const statusCode = health.status === 'healthy' ? 200 : 503;
+  res.status(statusCode).json(health);
 });
 
 // Login
@@ -382,8 +416,10 @@ app.post('/api/admin/medications', async (req, res) => {
   }
 });
 
-// Book appointment (patient)
+// Book appointment (patient) - with Redis locking to prevent double bookings
 app.post('/api/appointments/book', async (req, res) => {
+  let lockAcquired = false;
+  
   try {
     const { userId, provider, datetime, repeat = 'none' } = req.body;
 
@@ -393,8 +429,22 @@ app.post('/api/appointments/book', async (req, res) => {
       });
     }
 
+    // 1. Try to acquire Redis lock for this time slot
+    lockAcquired = await bookingLock.acquireLock(provider, datetime, userId);
+    
+    if (!lockAcquired) {
+      console.log(`🔒 Lock not acquired for ${provider} at ${datetime}`);
+      return res.status(409).json({ 
+        message: 'This time slot is currently being booked by another patient. Please wait a moment and try again.',
+        code: 'SLOT_LOCKED'
+      });
+    }
+
+    console.log(`🔓 Lock acquired for ${provider} at ${datetime} by user ${userId}`);
+
     const user = await UserService.getById(userId);
     if (!user) {
+      await bookingLock.releaseLock(provider, datetime);
       return res.status(404).json({ message: 'Patient not found' });
     }
 
@@ -410,8 +460,10 @@ app.post('/api/appointments/book', async (req, res) => {
     });
 
     if (hasUserConflict) {
+      await bookingLock.releaseLock(provider, datetime);
       return res.status(409).json({ 
-        message: 'Appointment time conflicts with your existing appointment. Please choose a different time.' 
+        message: 'Appointment time conflicts with your existing appointment. Please choose a different time.',
+        code: 'USER_CONFLICT'
       });
     }
 
@@ -432,12 +484,15 @@ app.post('/api/appointments/book', async (req, res) => {
     });
 
     if (hasProviderConflict) {
+      await bookingLock.releaseLock(provider, datetime);
       return res.status(409).json({ 
-        message: `Appointment time conflicts with ${provider}'s existing appointment. Please choose a different time.` 
+        message: `Appointment time conflicts with ${provider}'s existing appointment. Please choose a different time.`,
+        code: 'PROVIDER_CONFLICT'
       });
     }
 
     if (appointmentDate < new Date()) {
+      await bookingLock.releaseLock(provider, datetime);
       return res.status(400).json({ 
         message: 'Cannot book appointments in the past' 
       });
@@ -458,12 +513,20 @@ app.post('/api/appointments/book', async (req, res) => {
 
     await UserService.update(userId, { appointments: user.appointments });
 
+    // Release lock after successful booking
+    await bookingLock.releaseLock(provider, datetime);
+    console.log(`✅ Lock released for ${provider} at ${datetime}`);
+
     res.status(201).json({
       message: 'Appointment booked successfully',
       appointment: newAppointment
     });
 
   } catch (error) {
+    // Always release lock on error
+    if (lockAcquired) {
+      await bookingLock.releaseLock(req.body.provider, req.body.datetime);
+    }
     console.error('Book appointment error:', error);
     res.status(500).json({ message: 'Server error' });
   }
