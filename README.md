@@ -309,16 +309,6 @@ Prevents **double booking** race conditions when multiple users attempt to book 
 - 🛡️ **Production-Ready**: Includes monitoring, logging, and error handling
 - 👥 **Better UX**: Clear error messages guide users to retry
 
-## 🤝 Contributing
-
-We welcome contributions to improve Zealthy Mini EMR! Please feel free to:
-
-- 🐛 Report bugs and issues
-- 💡 Suggest new features
-- 🔧 Submit pull requests
-- 📚 Improve documentation
-- 🧪 Add tests and improve code quality
-
 ---
 
 <div align="center">
