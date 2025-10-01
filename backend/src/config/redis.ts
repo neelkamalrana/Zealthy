@@ -1,42 +1,46 @@
 import Redis from 'ioredis';
+import dotenv from 'dotenv';
 
-// Create Redis client
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+dotenv.config();
+
+// Redis configuration
+const redisConfig = {
+  host: process.env.REDIS_HOST || 'localhost',
+  port: parseInt(process.env.REDIS_PORT || '6379', 10),
+  password: process.env.REDIS_PASSWORD || undefined,
+  db: parseInt(process.env.REDIS_DB || '0', 10),
+  retryDelayOnFailover: 100,
   maxRetriesPerRequest: 3,
-  enableReadyCheck: true,
-  retryStrategy: (times) => {
-    const delay = Math.min(times * 50, 2000);
-    return delay;
-  },
-});
+  lazyConnect: true,
+  connectTimeout: 10000,
+  commandTimeout: 5000,
+};
 
-// Connection events
+// Create Redis instance
+const redis = new Redis(redisConfig);
+
+// Handle connection events
 redis.on('connect', () => {
-  console.log('✅ Redis: Connected successfully');
+  console.log('🔗 Redis connected successfully');
 });
 
-redis.on('ready', () => {
-  console.log('✅ Redis: Ready to accept commands');
-});
-
-redis.on('error', (err) => {
-  console.error('❌ Redis connection error:', err.message);
+redis.on('error', (error) => {
+  console.error('❌ Redis connection error:', error.message);
+  // Don't exit the process, just log the error
+  // The app can still work without Redis (booking locks will be disabled)
 });
 
 redis.on('close', () => {
-  console.log('⚠️  Redis: Connection closed');
-});
-
-redis.on('reconnecting', () => {
-  console.log('🔄 Redis: Reconnecting...');
+  console.log('🔌 Redis connection closed');
 });
 
 // Graceful shutdown
-process.on('SIGINT', async () => {
-  await redis.quit();
-  console.log('Redis connection closed gracefully');
-  process.exit(0);
+process.on('SIGINT', () => {
+  redis.disconnect();
+});
+
+process.on('SIGTERM', () => {
+  redis.disconnect();
 });
 
 export default redis;
-

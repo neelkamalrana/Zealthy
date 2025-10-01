@@ -8,6 +8,9 @@ body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: linear-gradient(135deg, #f8f9fa 0%, #f1f3f4 50%, #f8f9fa 100%);
   min-height: 100vh;
+  /* Chrome-specific fixes */
+  contain: layout style paint;
+  isolation: isolate;
 }
 
 /* Section ONE - Marketing Banner */
@@ -25,6 +28,9 @@ body {
   border-bottom: 2px solid #c8e6c8;
   z-index: 1002;
   box-shadow: 0 2px 8px rgba(200, 230, 200, 0.2);
+  /* Chrome-specific fixes */
+  contain: layout style paint;
+  isolation: isolate;
 }
 
 .marketing-banner a {
@@ -54,6 +60,9 @@ body {
   z-index: 1001;
   flex-wrap: wrap;
   min-height: 80px;
+  /* Chrome-specific fixes */
+  contain: layout style paint;
+  isolation: isolate;
 }
 
 .fixed-nav .nav-left {
@@ -172,7 +181,6 @@ body {
   border-color: #10b981;
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
   background: linear-gradient(135deg, #ffffff 0%, #fefefe 100%);
-  transform: scale(1.02);
 }
 
 .btn {
@@ -316,7 +324,6 @@ body {
 .table tr:hover {
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   transition: all 0.2s ease;
-  transform: scale(1.01);
 }
 
 .table tr:last-child td {
@@ -481,13 +488,15 @@ body {
   width: 100%;
   height: 100%;
   background: rgba(0,0,0,0.6);
-  backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
   padding: 20px;
   box-sizing: border-box;
+  /* Chrome-specific fixes */
+  contain: layout style paint;
+  isolation: isolate;
 }
 
 .modal-content {
@@ -583,7 +592,6 @@ body {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   text-shadow: none;
-  filter: drop-shadow(0 2px 4px rgba(16, 185, 129, 0.3));
 }
 
 .nav a, .fixed-nav a {
