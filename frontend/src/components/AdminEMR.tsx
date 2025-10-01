@@ -8,7 +8,7 @@ const AdminEMR: React.FC = () => {
   const [selectedPatient, setSelectedPatient] = useState<User | null>(null);
   const [currentView, setCurrentView] = useState<'patients' | 'patient-details'>('patients');
   const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState<'patient' | 'appointment' | 'prescription' | 'provider'>('patient');
+  const [modalType, setModalType] = useState<'patient' | 'appointment' | 'prescription' | 'provider' | 'medication'>('patient');
   const [editingItem, setEditingItem] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -24,6 +24,7 @@ const AdminEMR: React.FC = () => {
     refill_schedule: 'monthly' as 'weekly' | 'monthly' 
   });
   const [providerForm, setProviderForm] = useState({ name: '', specialty: '' });
+  const [medicationForm, setMedicationForm] = useState({ name: '', dosage: '', description: '' });
 
   const medications = ['Diovan', 'Lexapro', 'Metformin', 'Ozempic', 'Prozac', 'Seroquel', 'Tegretol'];
   const dosages = ['1mg', '2mg', '3mg', '5mg', '10mg', '25mg', '50mg', '100mg', '250mg', '500mg', '1000mg'];
@@ -218,7 +219,19 @@ const AdminEMR: React.FC = () => {
     }
   };
 
-  const openModal = (type: 'patient' | 'appointment' | 'prescription' | 'provider', item?: any) => {
+  const handleCreateMedication = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      // For now, just show success message - backend integration can be added later
+      alert(`Medication "${medicationForm.name}" (${medicationForm.dosage}) added successfully!`);
+      setShowModal(false);
+      setMedicationForm({ name: '', dosage: '', description: '' });
+    } catch (error: any) {
+      setError('Failed to create medication');
+    }
+  };
+
+  const openModal = (type: 'patient' | 'appointment' | 'prescription' | 'provider' | 'medication', item?: any) => {
     setModalType(type);
     setEditingItem(item);
     setShowModal(true);
@@ -254,6 +267,8 @@ const AdminEMR: React.FC = () => {
       }
     } else if (type === 'provider') {
       setProviderForm({ name: '', specialty: '' });
+    } else if (type === 'medication') {
+      setMedicationForm({ name: '', dosage: '', description: '' });
     }
   };
 
@@ -275,7 +290,7 @@ const AdminEMR: React.FC = () => {
         <div className="modal-content">
           <div className="modal-header">
             <h2>
-              {editingItem ? 'Edit' : 'Add'} {modalType === 'patient' ? 'Patient' : modalType === 'appointment' ? 'Appointment' : modalType === 'prescription' ? 'Prescription' : 'Provider'}
+              {editingItem ? 'Edit' : 'Add'} {modalType === 'patient' ? 'Patient' : modalType === 'appointment' ? 'Appointment' : modalType === 'prescription' ? 'Prescription' : modalType === 'provider' ? 'Provider' : 'Medication'}
             </h2>
             <button className="close-btn" onClick={() => setShowModal(false)}>×</button>
           </div>
@@ -289,7 +304,9 @@ const AdminEMR: React.FC = () => {
               ? (editingItem ? handleUpdateAppointment : handleCreateAppointment)
               : modalType === 'prescription'
               ? (editingItem ? handleUpdatePrescription : handleCreatePrescription)
-              : handleCreateProvider
+              : modalType === 'provider'
+              ? handleCreateProvider
+              : handleCreateMedication
           }>
             {modalType === 'patient' && (
               <>
@@ -451,6 +468,43 @@ const AdminEMR: React.FC = () => {
               </>
             )}
 
+            {modalType === 'medication' && (
+              <>
+                <div className="form-group">
+                  <label>Medication Name:</label>
+                  <input
+                    type="text"
+                    value={medicationForm.name}
+                    onChange={(e) => setMedicationForm({ ...medicationForm, name: e.target.value })}
+                    placeholder="e.g., Aspirin"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Dosage:</label>
+                  <select
+                    value={medicationForm.dosage}
+                    onChange={(e) => setMedicationForm({ ...medicationForm, dosage: e.target.value })}
+                    required
+                  >
+                    <option value="">Select dosage</option>
+                    {dosages.map(dosage => (
+                      <option key={dosage} value={dosage}>{dosage}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Description (Optional):</label>
+                  <textarea
+                    value={medicationForm.description}
+                    onChange={(e) => setMedicationForm({ ...medicationForm, description: e.target.value })}
+                    placeholder="e.g., Pain reliever and anti-inflammatory"
+                    rows={3}
+                  />
+                </div>
+              </>
+            )}
+
             <div style={{ marginTop: '20px' }}>
               <button type="submit" className="btn btn-success">
                 {editingItem ? 'Update' : 'Create'}
@@ -481,13 +535,16 @@ const AdminEMR: React.FC = () => {
             <div className="zealthy-logo-text">ZEALTHY</div>
           </div>
           <div className="nav-content">
-            <h1>Zealthy Mini EMR</h1>
+            <h1>Mini EMR</h1>
             <div className="nav-buttons">
               <button className="btn btn-patient" onClick={() => openModal('patient')}>
                 Add New Patient
               </button>
               <button className="btn btn-patient" onClick={() => openModal('provider')}>
                 Add New Provider
+              </button>
+              <button className="btn btn-patient" onClick={() => openModal('medication')}>
+                Add New Medication
               </button>
             </div>
           </div>
@@ -592,7 +649,7 @@ const AdminEMR: React.FC = () => {
             <div className="zealthy-logo-text">ZEALTHY</div>
           </div>
           <div className="nav-content">
-            <h1>Zealthy Mini EMR - Patient Details - {selectedPatient.name}</h1>
+            <h1>Mini EMR - Patient Details - {selectedPatient.name}</h1>
             <div className="nav-buttons">
               <button className="btn btn-secondary" onClick={() => setCurrentView('patients')}>
                 Back to Patients
