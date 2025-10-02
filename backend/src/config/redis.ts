@@ -4,32 +4,40 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Redis configuration - Railway & Upstash compatible
-const redisConfig = {
-  // Railway/Upstash provides REDIS_URL, parse it if available
-  ...(process.env.REDIS_URL ? {} : {
+let redis: Redis;
+
+if (process.env.REDIS_URL) {
+  // Use REDIS_URL directly for Railway/Upstash
+  console.log('🔗 Using REDIS_URL for Redis connection');
+  redis = new Redis(process.env.REDIS_URL, {
+    maxRetriesPerRequest: 3,
+    enableOfflineQueue: true,
+    lazyConnect: false,
+    connectTimeout: 10000,
+    commandTimeout: 5000,
+    // SSL/TLS configuration for Upstash
+    ...(process.env.REDIS_URL.startsWith('rediss://') ? {
+      tls: {
+        rejectUnauthorized: false
+      }
+    } : {}),
+  });
+} else {
+  // Fallback to individual environment variables
+  console.log('🔗 Using individual Redis config');
+  const redisConfig = {
     host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT || '6379', 10),
     password: process.env.REDIS_PASSWORD || undefined,
     db: parseInt(process.env.REDIS_DB || '0', 10),
-  }),
-  // Use REDIS_URL if provided (Railway/Upstash format)
-  ...(process.env.REDIS_URL ? { url: process.env.REDIS_URL } : {}),
-  retryDelayOnFailover: 100,
-  maxRetriesPerRequest: 3, // Allow some retries for connection
-  enableOfflineQueue: true, // Allow queuing commands when offline
-  lazyConnect: false, // Connect immediately
-  connectTimeout: 10000,
-  commandTimeout: 5000,
-  // SSL/TLS configuration for Upstash
-  ...(process.env.REDIS_URL?.startsWith('rediss://') ? {
-    tls: {
-      rejectUnauthorized: false // Allow self-signed certificates
-    }
-  } : {}),
-};
-
-// Create Redis instance
-const redis = new Redis(redisConfig);
+    maxRetriesPerRequest: 3,
+    enableOfflineQueue: true,
+    lazyConnect: false,
+    connectTimeout: 10000,
+    commandTimeout: 5000,
+  };
+  redis = new Redis(redisConfig);
+}
 
 // Handle connection events
 redis.on('connect', () => {
