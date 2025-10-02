@@ -51,6 +51,16 @@ const authenticateToken = (req: any, res: any, next: any) => {
   });
 };
 
+// Debug endpoint to check environment variables
+app.get('/api/debug', (req, res) => {
+  res.json({
+    REDIS_URL: process.env.REDIS_URL ? 'SET' : 'NOT SET',
+    REDIS_HOST: process.env.REDIS_HOST || 'NOT SET',
+    REDIS_PORT: process.env.REDIS_PORT || 'NOT SET',
+    NODE_ENV: process.env.NODE_ENV || 'NOT SET'
+  });
+});
+
 // Health check
 app.get('/api/health', async (req, res) => {
   const health = {
