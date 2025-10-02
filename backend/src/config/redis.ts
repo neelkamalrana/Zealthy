@@ -3,17 +3,29 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-// Redis configuration
+// Redis configuration - Railway & Upstash compatible
 const redisConfig = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379', 10),
-  password: process.env.REDIS_PASSWORD || undefined,
-  db: parseInt(process.env.REDIS_DB || '0', 10),
+  // Railway/Upstash provides REDIS_URL, parse it if available
+  ...(process.env.REDIS_URL ? {} : {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379', 10),
+    password: process.env.REDIS_PASSWORD || undefined,
+    db: parseInt(process.env.REDIS_DB || '0', 10),
+  }),
+  // Use REDIS_URL if provided (Railway/Upstash format)
+  ...(process.env.REDIS_URL ? { url: process.env.REDIS_URL } : {}),
   retryDelayOnFailover: 100,
-  maxRetriesPerRequest: 3,
-  lazyConnect: true,
+  maxRetriesPerRequest: 3, // Allow some retries for connection
+  enableOfflineQueue: true, // Allow queuing commands when offline
+  lazyConnect: false, // Connect immediately
   connectTimeout: 10000,
   commandTimeout: 5000,
+  // SSL/TLS configuration for Upstash
+  ...(process.env.REDIS_URL?.startsWith('rediss://') ? {
+    tls: {
+      rejectUnauthorized: false // Allow self-signed certificates
+    }
+  } : {}),
 };
 
 // Create Redis instance
