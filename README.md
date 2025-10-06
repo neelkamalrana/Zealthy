@@ -6,6 +6,42 @@ A modern, cloud-based Electronic Medical Records (EMR) system designed for healt
 
 - **Patient Portal**: [https://zealthy-psi-seven.vercel.app/](https://zealthy-psi-seven.vercel.app/)
 - **Admin Portal**: [https://zealthy-psi-seven.vercel.app/admin](https://zealthy-psi-seven.vercel.app/admin)
+- **Backend API**: [https://zealthy-production.up.railway.app/api](https://zealthy-production.up.railway.app/api)
+
+> **Note**: Admin portal has no authentication setup currently - all admin routes are publicly accessible.
+
+## 🚀 Quick Start
+
+### For Developers
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd zealthy-emr
+   ```
+
+2. **Backend Setup**
+   ```bash
+   cd backend
+   npm install
+   npm run dev
+   ```
+
+3. **Frontend Setup**
+   ```bash
+   cd frontend
+   npm install
+   npm start
+   ```
+
+### For API Testing
+- **API Commands**: See [API_COMMANDS.md](./API_COMMANDS.md) for complete curl examples
+- **Base URL**: `https://zealthy-production.up.railway.app/api`
+- **Admin Access**: No authentication required
+- **Patient Access**: JWT token required
+
+### For Users
+- **Patient Portal**: [https://zealthy-psi-seven.vercel.app/](https://zealthy-psi-seven.vercel.app/)
+- **Admin Portal**: [https://zealthy-psi-seven.vercel.app/admin](https://zealthy-psi-seven.vercel.app/admin)
 
 ## ✨ Features
 
@@ -136,16 +172,41 @@ zealthy-emr/
 ├── frontend/                 # React frontend application
 │   ├── src/
 │   │   ├── components/      # React components
+│   │   │   ├── AdminEMR.tsx
+│   │   │   ├── PatientPortal.tsx
+│   │   │   └── BlackFridayPage.tsx
 │   │   ├── services/        # API services
-│   │   └── hooks/          # Custom React hooks
-│   └── public/             # Static assets
+│   │   │   └── api.ts
+│   │   ├── hooks/          # Custom React hooks
+│   │   │   └── usePageTitle.ts
+│   │   ├── App.tsx         # Main application component
+│   │   ├── index.tsx       # Application entry point
+│   │   ├── App.css         # Application styles
+│   │   └── index.css       # Global styles
+│   ├── public/             # Static assets
+│   │   ├── index.html
+│   │   ├── manifest.json
+│   │   └── zealthy-favicon.svg
+│   ├── package.json        # Frontend dependencies
+│   └── tsconfig.json       # TypeScript configuration
 ├── backend/                 # Node.js backend application
 │   ├── src/
 │   │   ├── config/         # Configuration files
+│   │   │   ├── dynamodb.ts
+│   │   │   └── redis.ts
 │   │   ├── models/         # Data models
-│   │   └── utils/          # Utility functions
-│   └── dist/               # Compiled TypeScript
-└── README.md               # Project documentation
+│   │   │   └── DynamoDB.ts
+│   │   ├── services/       # Business logic
+│   │   │   └── bookingLock.ts
+│   │   ├── utils/          # Utility functions
+│   │   │   └── createTables.ts
+│   │   └── index.ts        # Server entry point
+│   ├── dist/               # Compiled TypeScript
+│   ├── package.json        # Backend dependencies
+│   ├── tsconfig.json       # TypeScript configuration
+│   └── test-redis.js       # Redis testing script
+├── README.md               # Project documentation
+└── API_COMMANDS.md         # API usage commands
 ```
 
 ## 🔌 API Endpoints
@@ -155,44 +216,55 @@ zealthy-emr/
 - **POST** `/api/auth/register` - User registration (admin only)
 
 ### 👥 Patient Management
-- **GET** `/api/admin/patients` - Get all patients (admin only)
-- **POST** `/api/admin/patients` - Create new patient (admin only)
-- **GET** `/api/admin/patients/:id` - Get patient details (admin only)
-- **PUT** `/api/admin/patients/:id` - Update patient information (admin only)
-- **DELETE** `/api/admin/patients/:id` - Delete patient (admin only)
-- **GET** `/api/patients/:id/dashboard` - Get patient dashboard data
+- **GET** `/api/admin/patients` - Get all patients (admin only, no auth required)
+- **POST** `/api/admin/patients` - Create new patient (admin only, no auth required)
+- **GET** `/api/admin/patients/:id` - Get patient details (admin only, no auth required)
+- **PUT** `/api/admin/patients/:id` - Update patient information (admin only, no auth required)
+- **DELETE** `/api/admin/patients/:id` - Delete patient (admin only, no auth required)
+- **GET** `/api/patient/dashboard` - Get patient dashboard data (JWT required)
 
 ### 👩‍⚕️ Provider Management
-- **GET** `/api/admin/providers` - Get all providers (admin only)
-- **POST** `/api/admin/providers` - Create new provider (admin only)
-- **GET** `/api/admin/providers/:id` - Get provider details (admin only)
-- **PUT** `/api/admin/providers/:id` - Update provider information (admin only)
-- **DELETE** `/api/admin/providers/:id` - Delete provider (admin only)
+- **GET** `/api/admin/providers` - Get all providers (admin only, no auth required)
+- **POST** `/api/admin/providers` - Create new provider (admin only, no auth required)
+- **GET** `/api/admin/providers/:id` - Get provider details (admin only, no auth required)
+- **PUT** `/api/admin/providers/:id` - Update provider information (admin only, no auth required)
+- **DELETE** `/api/admin/providers/:id` - Delete provider (admin only, no auth required)
 
 ### 📅 Appointment Management
-- **GET** `/api/patients/:id/appointments` - Get patient appointments
-- **POST** `/api/patients/:id/appointments` - Create new appointment
-- **PUT** `/api/patients/:id/appointments/:appointmentId` - Update appointment
-- **DELETE** `/api/patients/:id/appointments/:appointmentId` - Delete appointment
-- **GET** `/api/providers/:provider/availability/:date` - Get provider availability
-- **POST** `/api/appointments/book` - Book appointment (patient portal)
+- **GET** `/api/patient/appointments` - Get patient appointments (JWT required)
+- **POST** `/api/patient/appointments` - Create new appointment (JWT required)
+- **PUT** `/api/patient/appointments/:appointmentId` - Update appointment (JWT required)
+- **DELETE** `/api/patient/appointments/:appointmentId` - Delete appointment (JWT required)
+- **GET** `/api/providers/:provider/availability/:date` - Get provider availability (no auth required)
+- **POST** `/api/appointments/book` - Book appointment with Redis locking (JWT required)
 
 ### 💊 Prescription Management
-- **GET** `/api/patients/:id/prescriptions` - Get patient prescriptions
-- **POST** `/api/patients/:id/prescriptions` - Create new prescription
-- **PUT** `/api/patients/:id/prescriptions/:prescriptionId` - Update prescription
-- **DELETE** `/api/patients/:id/prescriptions/:prescriptionId` - Delete prescription
+- **GET** `/api/admin/patients/:id/prescriptions` - Get patient prescriptions (admin only, no auth required)
+- **POST** `/api/admin/patients/:id/prescriptions` - Create new prescription (admin only, no auth required)
+- **PUT** `/api/admin/patients/:id/prescriptions/:prescriptionId` - Update prescription (admin only, no auth required)
+- **DELETE** `/api/admin/patients/:id/prescriptions/:prescriptionId` - Delete prescription (admin only, no auth required)
+- **GET** `/api/patient/prescriptions` - Get patient prescriptions (JWT required)
 
 ### 💉 Medication Management
-- **GET** `/api/admin/medications` - Get all medications (admin only)
-- **POST** `/api/admin/medications` - Create new medication (admin only)
-- **GET** `/api/admin/medications/:id` - Get medication details (admin only)
-- **PUT** `/api/admin/medications/:id` - Update medication information (admin only)
-- **DELETE** `/api/admin/medications/:id` - Delete medication (admin only)
+- **GET** `/api/admin/medications` - Get all medications (admin only, no auth required)
+- **POST** `/api/admin/medications` - Create new medication (admin only, no auth required)
+- **GET** `/api/admin/medications/:id` - Get medication details (admin only, no auth required)
+- **PUT** `/api/admin/medications/:id` - Update medication information (admin only, no auth required)
+- **DELETE** `/api/admin/medications/:id` - Delete medication (admin only, no auth required)
 
 ### 🏥 System Health
 - **GET** `/api/health` - Health check endpoint
 - **GET** `/api/status` - System status information
+
+## 📚 API Documentation
+
+For complete API usage with curl commands, see: **[API_COMMANDS.md](./API_COMMANDS.md)**
+
+**Quick Reference:**
+- **Base URL**: `https://zealthy-production.up.railway.app/api`
+- **Admin Routes**: No authentication required
+- **Patient Routes**: JWT token required in Authorization header
+- **Authentication**: `Authorization: Bearer <your_jwt_token>`
 
 ### 📊 Data Models
 
@@ -238,9 +310,11 @@ zealthy-emr/
   id: string;
   medication: string;
   dosage: string;
-  quantity: number;
-  refill_on: string;
-  refill_schedule: 'weekly' | 'monthly';
+  instructions: string;
+  startDate: string;
+  endDate: string;
+  refill_schedule?: 'weekly' | 'monthly';
+  isActive: boolean;
 }
 ```
 

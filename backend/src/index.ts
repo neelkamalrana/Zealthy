@@ -316,7 +316,7 @@ app.post('/api/admin/patients/:id/appointments', async (req, res) => {
 // Create prescription (admin)
 app.post('/api/admin/patients/:id/prescriptions', async (req, res) => {
   try {
-    const { medication, dosage, instructions, startDate, endDate, refill_schedule } = req.body;
+    const { medication, dosage, quantity, refill_on, refill_schedule } = req.body;
 
     const user = await UserService.getById(req.params.id);
     if (!user) {
@@ -327,9 +327,9 @@ app.post('/api/admin/patients/:id/prescriptions', async (req, res) => {
       id: uuidv4(),
       medication,
       dosage,
-      instructions,
-      startDate,
-      endDate,
+      instructions: `Take ${quantity} tablet(s) as prescribed`,
+      startDate: new Date().toISOString().split('T')[0],
+      endDate: refill_on,
       refill_schedule,
       isActive: true
     };
