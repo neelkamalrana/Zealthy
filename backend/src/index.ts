@@ -362,6 +362,17 @@ app.get('/api/providers', async (req, res) => {
   }
 });
 
+// Get all providers (admin)
+app.get('/api/admin/providers', async (req, res) => {
+  try {
+    const providers = await ProviderService.getAll();
+    res.json(providers);
+  } catch (error) {
+    console.error('Get providers error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Create provider (admin)
 app.post('/api/admin/providers', async (req, res) => {
   try {
