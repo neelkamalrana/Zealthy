@@ -10,38 +10,11 @@ A modern, cloud-based Electronic Medical Records (EMR) system designed for healt
 
 > **Note**: Admin portal has no authentication setup currently - all admin routes are publicly accessible.
 
-## 🚀 Quick Start
+## 📚 API Documentation
 
-### For Developers
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd zealthy-emr
-   ```
+For complete API usage with curl commands, authentication examples, and patient ID lookup instructions, see: **[API_COMMANDS.md](./API_COMMANDS.md)**
 
-2. **Backend Setup**
-   ```bash
-   cd backend
-   npm install
-   npm run dev
-   ```
-
-3. **Frontend Setup**
-   ```bash
-   cd frontend
-   npm install
-   npm start
-   ```
-
-### For API Testing
-- **API Commands**: See [API_COMMANDS.md](./API_COMMANDS.md) for complete curl examples
-- **Base URL**: `https://zealthy-production.up.railway.app/api`
-- **Admin Access**: No authentication required
-- **Patient Access**: JWT token required
-
-### For Users
-- **Patient Portal**: [https://zealthy-psi-seven.vercel.app/](https://zealthy-psi-seven.vercel.app/)
-- **Admin Portal**: [https://zealthy-psi-seven.vercel.app/admin](https://zealthy-psi-seven.vercel.app/admin)
+> **Quick Reference**: Admin routes require no authentication, while patient routes require JWT tokens. All API endpoints and examples are documented in the API_COMMANDS.md file.
 
 ## ✨ Features
 
@@ -256,15 +229,6 @@ zealthy-emr/
 - **GET** `/api/health` - Health check endpoint
 - **GET** `/api/status` - System status information
 
-## 📚 API Documentation
-
-For complete API usage with curl commands, see: **[API_COMMANDS.md](./API_COMMANDS.md)**
-
-**Quick Reference:**
-- **Base URL**: `https://zealthy-production.up.railway.app/api`
-- **Admin Routes**: No authentication required
-- **Patient Routes**: JWT token required in Authorization header
-- **Authentication**: `Authorization: Bearer <your_jwt_token>`
 
 ### 📊 Data Models
 
